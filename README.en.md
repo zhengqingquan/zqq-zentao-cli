@@ -17,25 +17,43 @@ pip install -e .
 zentao -h
 ```
 
-## Configuration
+## Config & login
+
+Preferred (same idea as official CLI). Credentials go to `~/.config/zentao/zentao.json` (**password is never stored**):
+
+```bash
+zentao login -s https://zentao.example.com -u your_account -p your_password
+```
+
+| Flag | Description | Env fallback |
+|------|-------------|--------------|
+| `-s` / `--server` | ZenTao base URL (no trailing slash) | `ZENTAO_SERVER` or `ZENTAO_URL` |
+| `-u` / `--account` | Account | `ZENTAO_ACCOUNT` |
+| `-p` / `--password` | Password | `ZENTAO_PASSWORD` |
+
+On success, the current profile stores:
+
+- `webCookies` — Web session cookies (this tool)
+- `token` — REST token (same field as official CLI)
+
+Env-only setups still work; unauthenticated commands hint you to run `zentao login`.
 
 | Variable | Description |
 |----------|-------------|
-| `ZENTAO_SERVER` or `ZENTAO_URL` | ZenTao base URL (no trailing slash) |
+| `ZENTAO_SERVER` or `ZENTAO_URL` | ZenTao base URL |
 | `ZENTAO_ACCOUNT` | Account |
-| `ZENTAO_PASSWORD` | Password (not stored on disk; required for Web; used for REST token exchange if no token) |
-| `ZENTAO_TOKEN` | REST Token (prefers REST when set) |
+| `ZENTAO_PASSWORD` | Password (not on disk; needed for `login` or when Cookie/Token missing) |
+| `ZENTAO_TOKEN` | REST token (overrides file token) |
 | `ZENTAO_BACKEND` | `web` \| `rest` \| `auto` (default `auto`) |
 | `ZENTAO_INSECURE` | Default `1` skips TLS verify; set `0` to verify |
-
-Falls back to `~/.config/zentao/zentao.json` profile (server/account only).
 
 PowerShell example:
 
 ```powershell
-$env:ZENTAO_SERVER = "https://zentao.example.com"
+$env:ZENTAO_URL = "https://zentao.example.com"
 $env:ZENTAO_ACCOUNT = "your_account"
 $env:ZENTAO_PASSWORD = "your_password"
+zentao login
 ```
 
 **Never** print Cookie, password, or Token in logs or chat.
@@ -43,6 +61,7 @@ $env:ZENTAO_PASSWORD = "your_password"
 ## Usage
 
 ```bash
+zentao login -s https://zentao.example.com -u admin -p secret
 zentao whoami
 zentao --backend rest whoami
 zentao my-tasks
@@ -55,13 +74,14 @@ zentao comment edit 1063694 "updated comment"
 
 | Command | Description | Backend |
 |---------|-------------|---------|
+| `login` | Login and cache Cookie / Token | web + rest (`auto`) |
 | `whoami` | Current account and server | web / rest |
 | `my-tasks` | Tasks assigned to me | web / rest |
 | `tasks -e <id>` | Tasks under an execution | web / rest |
 | `task <id>` | Task detail (JSON) | web / rest |
 | `comment list/add/edit` | Comment CRUD | **web only** |
 
-`--backend` overrides `ZENTAO_BACKEND`. For `auto`: prefer rest when `ZENTAO_TOKEN` is set, otherwise web; comment commands always use web.
+`--backend` overrides `ZENTAO_BACKEND`. For `auto`: prefer rest when a token exists (env or config file), otherwise web; comment commands always use web. `login` with `auto` performs both Web and REST credential exchange.
 
 ## Layout
 

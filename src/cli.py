@@ -4,13 +4,13 @@
 ZenTao dual-backend CLI (Web PATHINFO / REST Token).
 
 Auth:
-  - Server/account: ZENTAO_SERVER (or ZENTAO_URL) / ZENTAO_ACCOUNT,
-    or fallback ~/.config/zentao/zentao.json
-  - Web: ZENTAO_PASSWORD (required)
-  - REST: ZENTAO_TOKEN, or exchange ZENTAO_PASSWORD for a token
+  - zentao login -s <url> -u <account> -p <password>
+  - Or env ZENTAO_SERVER/ZENTAO_URL, ZENTAO_ACCOUNT, ZENTAO_PASSWORD / ZENTAO_TOKEN
+  - Caches webCookies + token in ~/.config/zentao/zentao.json (no password on disk)
   - Backend: --backend / ZENTAO_BACKEND = web|rest|auto
 
 Usage:
+  zentao login -s https://zentao.example.com -u admin -p secret
   zentao whoami
   zentao --backend rest whoami
   zentao my-tasks
@@ -28,6 +28,7 @@ import json
 from typing import Any
 
 from .factory import create_client
+from .services import auth as auth_svc
 from .services import comments as comment_svc
 from .services import tasks as task_svc
 from .web.parse import strip_tags
@@ -79,7 +80,15 @@ def build_parser() -> argparse.ArgumentParser:
     )
     sub = p.add_subparsers(dest="cmd", required=True)
 
-    sub.add_parser("whoami", help="Show configured account and server (logs in)")
+    p_login = sub.add_parser(
+        "login",
+        help="Login and cache webCookies + REST token in ~/.config/zentao/zentao.json",
+    )
+    p_login.add_argument("-s", "--server", help="ZenTao URL (or ZENTAO_SERVER / ZENTAO_URL)")
+    p_login.add_argument("-u", "--account", help="Account (or ZENTAO_ACCOUNT)")
+    p_login.add_argument("-p", "--password", help="Password (or ZENTAO_PASSWORD)")
+
+    sub.add_parser("whoami", help="Show configured account and server")
     sub.add_parser("my-tasks", help="Tasks assigned to me")
 
     p_tasks = sub.add_parser("tasks", help="Task list under an execution")
@@ -116,6 +125,16 @@ def _capability(args: argparse.Namespace) -> str:
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
+
+    if args.cmd == "login":
+        result = auth_svc.do_login(
+            server=args.server,
+            account=args.account,
+            password=args.password,
+            backend=args.backend,
+        )
+        print_json(result)
+        return 0
 
     cap = _capability(args)
     client = create_client(cap, cli_backend=args.backend)

@@ -6,9 +6,20 @@ from __future__ import annotations
 
 from typing import Any
 
-from ..config import insecure_ssl, load_profile, resolve_password
+from ..config import (
+    LOGIN_HINT,
+    clear_web_cookies,
+    cookies_look_valid,
+    insecure_ssl,
+    load_profile,
+    load_web_cookies,
+    resolve_password,
+    save_web_cookies,
+    try_resolve_password,
+)
 from . import comments as comments_api
 from . import tasks as tasks_api
+from .parse import looks_auth_fail
 from .session import Session
 
 
@@ -27,13 +38,60 @@ class WebClient:
     def session(self) -> Session:
         return self._sess
 
-    def login(self) -> None:
-        self._sess.login(self.profile["account"], resolve_password())
+    def login(self, *, password: str | None = None, persist: bool = True) -> None:
+        pwd = password if password is not None else resolve_password()
+        self._sess.login(self.profile["account"], pwd)
+        if persist:
+            save_web_cookies(
+                self._sess.cookies,
+                server=self.profile["server"],
+                account=self.profile["account"],
+            )
         self._logged_in = True
 
+    def _apply_cached_cookies(self) -> bool:
+        cookies = load_web_cookies(
+            server=self.profile["server"],
+            account=self.profile["account"],
+        )
+        if not cookies_look_valid(cookies):
+            return False
+        self._sess.cookies = dict(cookies)
+        self._sess.mark_cookie_auth(self.profile["account"])
+        self._logged_in = True
+        return True
+
     def _ensure_login(self) -> None:
-        if not self._logged_in:
+        if self._logged_in:
+            return
+        if self._apply_cached_cookies():
+            return
+        if try_resolve_password():
             self.login()
+            return
+        raise SystemExit(f"Not logged in (web). {LOGIN_HINT}")
+
+    def _relogin_on_auth_fail(self) -> bool:
+        """Clear cache and re-login with password once. Returns True if retried."""
+        clear_web_cookies(server=self.profile["server"], account=self.profile["account"])
+        self._sess.cookies.clear()
+        self._logged_in = False
+        if not try_resolve_password():
+            return False
+        self.login()
+        return True
+
+    def _with_auth_retry(self, fn):
+        self._ensure_login()
+        try:
+            return fn()
+        except SystemExit as e:
+            msg = str(e)
+            if "auth fail" not in msg.lower() and "login" not in msg.lower():
+                raise
+            if not self._relogin_on_auth_fail():
+                raise SystemExit(f"{msg}. {LOGIN_HINT}") from e
+            return fn()
 
     def whoami(self) -> dict[str, Any]:
         self._ensure_login()
@@ -47,25 +105,44 @@ class WebClient:
         }
 
     def my_tasks(self) -> list[dict[str, Any]]:
-        self._ensure_login()
-        return tasks_api.fetch_my_tasks(self._sess)
+        def _run() -> list[dict[str, Any]]:
+            rows = tasks_api.fetch_my_tasks(self._sess)
+            return rows
+
+        return self._with_auth_retry(_run)
 
     def execution_tasks(self, execution_id: str | int) -> list[dict[str, Any]]:
-        self._ensure_login()
-        return tasks_api.fetch_execution_tasks(self._sess, execution_id)
+        def _run() -> list[dict[str, Any]]:
+            return tasks_api.fetch_execution_tasks(self._sess, execution_id)
+
+        return self._with_auth_retry(_run)
 
     def get_task(self, task_id: str | int) -> dict[str, Any]:
-        self._ensure_login()
-        return tasks_api.fetch_task(self._sess, task_id)
+        def _run() -> dict[str, Any]:
+            return tasks_api.fetch_task(self._sess, task_id)
+
+        return self._with_auth_retry(_run)
 
     def list_comments(self, object_type: str, object_id: str | int) -> list[Any]:
-        self._ensure_login()
-        return comments_api.list_comments(self._sess, object_type, object_id)
+        def _run() -> list[Any]:
+            return comments_api.list_comments(self._sess, object_type, object_id)
+
+        return self._with_auth_retry(_run)
 
     def add_comment(self, object_type: str, object_id: str | int, comment: str) -> dict[str, Any]:
-        self._ensure_login()
-        return comments_api.add_comment(self._sess, object_type, object_id, comment)
+        def _run() -> dict[str, Any]:
+            r = comments_api.add_comment(self._sess, object_type, object_id, comment)
+            if looks_auth_fail(r):
+                raise SystemExit(f"comment.add auth fail HTTP {r['status']}")
+            return r
+
+        return self._with_auth_retry(_run)
 
     def edit_comment(self, action_id: str | int, comment: str) -> dict[str, Any]:
-        self._ensure_login()
-        return comments_api.edit_comment(self._sess, action_id, comment)
+        def _run() -> dict[str, Any]:
+            r = comments_api.edit_comment(self._sess, action_id, comment)
+            if looks_auth_fail(r):
+                raise SystemExit(f"comment.edit auth fail HTTP {r['status']}")
+            return r
+
+        return self._with_auth_retry(_run)

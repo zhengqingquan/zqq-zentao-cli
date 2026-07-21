@@ -17,25 +17,43 @@ pip install -e .
 zentao -h
 ```
 
-## 配置
+## 配置与登录
+
+推荐与官方 CLI 一样显式登录（凭证写入 `~/.config/zentao/zentao.json`，**不存密码**）：
+
+```bash
+zentao login -s https://zentao.example.com -u your_account -p your_password
+```
+
+| 参数 | 说明 | 环境变量回退 |
+|------|------|----------------|
+| `-s` / `--server` | 禅道地址（无尾斜杠） | `ZENTAO_SERVER` 或 `ZENTAO_URL` |
+| `-u` / `--account` | 账号 | `ZENTAO_ACCOUNT` |
+| `-p` / `--password` | 密码 | `ZENTAO_PASSWORD` |
+
+登录成功后写入当前 profile：
+
+- `webCookies`：Web 会话 Cookie（本工具字段）
+- `token`：REST Token（与官方字段一致）
+
+也可仅用环境变量；未登录时业务命令会提示执行 `zentao login`。
 
 | 变量 | 说明 |
 |------|------|
-| `ZENTAO_SERVER` 或 `ZENTAO_URL` | 禅道地址（无尾斜杠） |
+| `ZENTAO_SERVER` 或 `ZENTAO_URL` | 禅道地址 |
 | `ZENTAO_ACCOUNT` | 账号 |
-| `ZENTAO_PASSWORD` | 密码（不落盘；Web 必填，REST 无 Token 时用于换票） |
-| `ZENTAO_TOKEN` | REST Token（有则优先 REST） |
+| `ZENTAO_PASSWORD` | 密码（不落盘；`login` 或缺 Cookie/Token 时需要） |
+| `ZENTAO_TOKEN` | REST Token（有则优先于文件内 token） |
 | `ZENTAO_BACKEND` | `web` \| `rest` \| `auto`（默认 `auto`） |
 | `ZENTAO_INSECURE` | 默认 `1` 跳过 TLS 校验；设为 `0` 则校验 |
-
-也可回退读取 `~/.config/zentao/zentao.json` 中的 profile（仅 server/account）。
 
 PowerShell 示例：
 
 ```powershell
-$env:ZENTAO_SERVER = "https://zentao.example.com"
+$env:ZENTAO_URL = "https://zentao.example.com"
 $env:ZENTAO_ACCOUNT = "your_account"
 $env:ZENTAO_PASSWORD = "your_password"
+zentao login
 ```
 
 **不要**在日志或对话中打印 Cookie、密码、Token。
@@ -43,6 +61,7 @@ $env:ZENTAO_PASSWORD = "your_password"
 ## 用法
 
 ```bash
+zentao login -s https://zentao.example.com -u admin -p secret
 zentao whoami
 zentao --backend rest whoami
 zentao my-tasks
@@ -55,13 +74,14 @@ zentao comment edit 1063694 "新备注"
 
 | 命令 | 说明 | 后端 |
 |------|------|------|
+| `login` | 登录并缓存 Cookie / Token | web + rest（`auto`） |
 | `whoami` | 当前账号与服务器 | web / rest |
 | `my-tasks` | 指派给我的任务 | web / rest |
 | `tasks -e <id>` | 某执行下的任务列表 | web / rest |
 | `task <id>` | 任务详情（JSON） | web / rest |
 | `comment list/add/edit` | 备注增改查 | **仅 web** |
 
-`--backend` 可覆盖 `ZENTAO_BACKEND`。`auto`：有 `ZENTAO_TOKEN` 偏向 rest，否则 web；备注类命令强制 web。
+`--backend` 可覆盖 `ZENTAO_BACKEND`。`auto`：有 Token（环境变量或配置文件）偏向 rest，否则 web；备注类命令强制 web。`login` 在 `auto` 下会同时完成 Web 与 REST 换票。
 
 ## 目录结构
 

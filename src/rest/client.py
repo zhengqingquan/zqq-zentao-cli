@@ -7,7 +7,7 @@ from __future__ import annotations
 from typing import Any
 from urllib.parse import quote
 
-from ..config import insecure_ssl, load_profile
+from ..config import LOGIN_HINT, insecure_ssl, load_profile, try_resolve_password
 from .session import RestSession
 
 
@@ -68,16 +68,27 @@ class RestClient:
         self._sess = RestSession(
             self.profile["server"],
             insecure=insecure_ssl() if insecure is None else insecure,
+            account=self.profile["account"],
         )
         self._logged_in = False
 
-    def login(self) -> None:
-        self._sess.login(self.profile["account"])
+    def login(self, *, password: str | None = None, force_password: bool = False) -> None:
+        self._sess.login(
+            self.profile["account"],
+            password,
+            force_password=force_password,
+        )
         self._logged_in = True
 
     def _ensure_login(self) -> None:
-        if not self._logged_in:
+        if self._logged_in:
+            return
+        try:
             self.login()
+        except SystemExit as e:
+            if try_resolve_password():
+                raise
+            raise SystemExit(f"{e}. {LOGIN_HINT}") from e
 
     def whoami(self) -> dict[str, Any]:
         self._ensure_login()

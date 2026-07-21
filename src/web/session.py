@@ -127,3 +127,6 @@ class Session:
         if not self.cookies.get("zentaosid"):
             raise SystemExit("Login succeeded but zentaosid cookie is missing")
         print(f"auth: web-login(account={account})", file=sys.stderr)
+
+    def mark_cookie_auth(self, account: str) -> None:
+        print(f"auth: web-cookie-cache(account={account})", file=sys.stderr)

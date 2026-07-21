@@ -16,8 +16,9 @@ from ..config import USER_AGENT, resolve_password, resolve_token
 
 
 class RestSession:
-    def __init__(self, server: str, insecure: bool = True):
+    def __init__(self, server: str, insecure: bool = True, *, account: str = ""):
         self.server = server.rstrip("/")
+        self.account = account
         self.token = ""
         self.insecure = insecure
         self._ssl = ssl._create_unverified_context() if insecure else None
@@ -83,12 +84,26 @@ class RestSession:
             "content_type": ctype,
         }
 
-    def login(self, account: str, password: str | None = None) -> None:
-        token = resolve_token()
-        if token:
-            self.token = token
-            print(f"auth: rest-token(account={account})", file=sys.stderr)
-            return
+    def login(
+        self,
+        account: str,
+        password: str | None = None,
+        *,
+        prefer_stored: bool = True,
+        force_password: bool = False,
+    ) -> str:
+        """
+        Authenticate. Returns the token in use.
+        prefer_stored: try env/profile token before password exchange.
+        force_password: always exchange password (used by `zentao login`).
+        """
+        self.account = account
+        if not force_password and prefer_stored:
+            token = resolve_token(server=self.server, account=account)
+            if token:
+                self.token = token
+                print(f"auth: rest-token(account={account})", file=sys.stderr)
+                return self.token
 
         pwd = password if password is not None else resolve_password()
         r = self.request(
@@ -101,7 +116,8 @@ class RestSession:
         if not isinstance(data, dict) or not data.get("token"):
             raise SystemExit(
                 f"REST login failed HTTP {r['status']}: {r['raw'][:160]}. "
-                "Check ZENTAO_PASSWORD or set ZENTAO_TOKEN."
+                "Check password / ZENTAO_PASSWORD or set ZENTAO_TOKEN."
             )
         self.token = str(data["token"])
         print(f"auth: rest-login(account={account})", file=sys.stderr)
+        return self.token
