@@ -8,7 +8,8 @@
 
 - Python ≥ 3.10，无第三方依赖
 - Web 可读写备注；REST 适合任务只读等结构化接口
-- Web PATHINFO 接口说明见 [zentao-har-apis.md](./zentao-har-apis.md)
+- 与官方 [zentao-cli](https://github.com/easysoft/zentao-cli) 共用环境变量与 `~/.config/zentao/zentao.json`（本工具另存 `webCookies`）
+- Web PATHINFO 接口说明见 [docs/zentao-apis.md](./docs/zentao-apis.md)
 
 ## 安装
 
@@ -27,25 +28,28 @@ zentao login -s https://zentao.example.com -u your_account -p your_password
 
 | 参数 | 说明 | 环境变量回退 |
 |------|------|----------------|
-| `-s` / `--server` | 禅道地址（无尾斜杠） | `ZENTAO_SERVER` 或 `ZENTAO_URL` |
+| `-s` / `--server` | 禅道地址（无尾斜杠） | `ZENTAO_URL`（推荐）或 `ZENTAO_SERVER` |
 | `-u` / `--account` | 账号 | `ZENTAO_ACCOUNT` |
 | `-p` / `--password` | 密码 | `ZENTAO_PASSWORD` |
 
 登录成功后写入当前 profile：
 
-- `webCookies`：Web 会话 Cookie（本工具字段）
+- `webCookies`：Web 会话 Cookie（本工具字段；官方 CLI 会忽略）
 - `token`：REST Token（与官方字段一致）
 
 也可仅用环境变量；未登录时业务命令会提示执行 `zentao login`。
 
-| 变量 | 说明 |
-|------|------|
-| `ZENTAO_SERVER` 或 `ZENTAO_URL` | 禅道地址 |
-| `ZENTAO_ACCOUNT` | 账号 |
-| `ZENTAO_PASSWORD` | 密码（不落盘；`login` 或缺 Cookie/Token 时需要） |
-| `ZENTAO_TOKEN` | REST Token（有则优先于文件内 token） |
-| `ZENTAO_BACKEND` | `web` \| `rest` \| `auto`（默认 `auto`） |
-| `ZENTAO_INSECURE` | 默认 `1` 跳过 TLS 校验；设为 `0` 则校验 |
+| 变量 | 说明 | 官方 zentao-cli |
+|------|------|-----------------|
+| `ZENTAO_URL` | 禅道地址（推荐，与官方一致） | ✅ |
+| `ZENTAO_SERVER` | 同上，本工具别名 | ❌ |
+| `ZENTAO_ACCOUNT` | 账号 | ✅ |
+| `ZENTAO_PASSWORD` | 密码（不落盘；`login` 或缺 Cookie/Token 时需要） | ✅ |
+| `ZENTAO_TOKEN` | REST Token（有则优先于文件内 token） | ✅ |
+| `ZENTAO_BACKEND` | `web` \| `rest` \| `auto`（默认 `auto`） | — |
+| `ZENTAO_INSECURE` | 默认 `1` 跳过 TLS 校验；设为 `0` 则校验 | — |
+
+与官方 CLI **共用同一套变量**时请用 `ZENTAO_URL`，不要只设 `ZENTAO_SERVER`。
 
 PowerShell 示例：
 
@@ -55,6 +59,11 @@ $env:ZENTAO_ACCOUNT = "your_account"
 $env:ZENTAO_PASSWORD = "your_password"
 zentao login
 ```
+
+鉴权行为简述：
+
+- **Web**：优先用缓存 `webCookies`；失效且有 `ZENTAO_PASSWORD` 时自动重登并写回；否则提示 `zentao login`
+- **REST**：`ZENTAO_TOKEN` → 配置文件 `token` → 密码换票
 
 **不要**在日志或对话中打印 Cookie、密码、Token。
 
@@ -90,10 +99,13 @@ src/                 # 安装后映射为包 zqq_zentao_cli，入口命令：zen
   cli.py
   config.py
   factory.py
+  capabilities.py
+  protocol.py
   web/               # Cookie + PATHINFO
   rest/              # Token + /api.php/v1
   services/
-zentao-har-apis.md   # Web 接口说明
+docs/
+  zentao-apis.md     # Web 接口说明
 LICENSE              # MIT
 ```
 

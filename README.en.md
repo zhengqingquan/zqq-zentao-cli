@@ -8,7 +8,8 @@ ZenTao dual-backend CLI: **Web (PATHINFO + Cookie)** and **REST (Token)**.
 
 - Python ≥ 3.10, no third-party dependencies
 - Web supports comment read/write; REST fits structured task reads
-- Web PATHINFO API notes: [zentao-har-apis.md](./zentao-har-apis.md)
+- Shares env vars and `~/.config/zentao/zentao.json` with the official [zentao-cli](https://github.com/easysoft/zentao-cli) (this tool also stores `webCookies`)
+- Web PATHINFO API notes: [docs/zentao-apis.md](./docs/zentao-apis.md)
 
 ## Install
 
@@ -27,25 +28,28 @@ zentao login -s https://zentao.example.com -u your_account -p your_password
 
 | Flag | Description | Env fallback |
 |------|-------------|--------------|
-| `-s` / `--server` | ZenTao base URL (no trailing slash) | `ZENTAO_SERVER` or `ZENTAO_URL` |
+| `-s` / `--server` | ZenTao base URL (no trailing slash) | `ZENTAO_URL` (preferred) or `ZENTAO_SERVER` |
 | `-u` / `--account` | Account | `ZENTAO_ACCOUNT` |
 | `-p` / `--password` | Password | `ZENTAO_PASSWORD` |
 
 On success, the current profile stores:
 
-- `webCookies` — Web session cookies (this tool)
+- `webCookies` — Web session cookies (this tool; ignored by official CLI)
 - `token` — REST token (same field as official CLI)
 
 Env-only setups still work; unauthenticated commands hint you to run `zentao login`.
 
-| Variable | Description |
-|----------|-------------|
-| `ZENTAO_SERVER` or `ZENTAO_URL` | ZenTao base URL |
-| `ZENTAO_ACCOUNT` | Account |
-| `ZENTAO_PASSWORD` | Password (not on disk; needed for `login` or when Cookie/Token missing) |
-| `ZENTAO_TOKEN` | REST token (overrides file token) |
-| `ZENTAO_BACKEND` | `web` \| `rest` \| `auto` (default `auto`) |
-| `ZENTAO_INSECURE` | Default `1` skips TLS verify; set `0` to verify |
+| Variable | Description | Official zentao-cli |
+|----------|-------------|---------------------|
+| `ZENTAO_URL` | ZenTao base URL (preferred; matches official) | ✅ |
+| `ZENTAO_SERVER` | Same, this tool’s alias | ❌ |
+| `ZENTAO_ACCOUNT` | Account | ✅ |
+| `ZENTAO_PASSWORD` | Password (not on disk; needed for `login` or when Cookie/Token missing) | ✅ |
+| `ZENTAO_TOKEN` | REST token (overrides file token) | ✅ |
+| `ZENTAO_BACKEND` | `web` \| `rest` \| `auto` (default `auto`) | — |
+| `ZENTAO_INSECURE` | Default `1` skips TLS verify; set `0` to verify | — |
+
+To share env with the official CLI, set `ZENTAO_URL` — do not rely on `ZENTAO_SERVER` alone.
 
 PowerShell example:
 
@@ -55,6 +59,11 @@ $env:ZENTAO_ACCOUNT = "your_account"
 $env:ZENTAO_PASSWORD = "your_password"
 zentao login
 ```
+
+Auth behavior:
+
+- **Web**: prefer cached `webCookies`; on expiry, re-login with `ZENTAO_PASSWORD` if set and rewrite; otherwise hint `zentao login`
+- **REST**: `ZENTAO_TOKEN` → profile `token` → password exchange
 
 **Never** print Cookie, password, or Token in logs or chat.
 
@@ -90,10 +99,13 @@ src/                 # installed as package zqq_zentao_cli; console: zentao
   cli.py
   config.py
   factory.py
+  capabilities.py
+  protocol.py
   web/               # Cookie + PATHINFO
   rest/              # Token + /api.php/v1
   services/
-zentao-har-apis.md   # Web API notes
+docs/
+  zentao-apis.md     # Web API notes
 LICENSE              # MIT
 ```
 
