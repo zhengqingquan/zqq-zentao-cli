@@ -3,6 +3,7 @@ name = "zqq-zentao-cli"
 version = "0.1.0"
 description = "ZenTao dual-backend CLI (Web Cookie PATHINFO / REST Token)."
 readme = "README.md"
+license = { file = "LICENSE" }
 requires-python = ">=3.10"
 dependencies = []
 
