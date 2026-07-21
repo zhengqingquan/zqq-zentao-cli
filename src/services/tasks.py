@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from protocol import ZenTaoClient
+from ..protocol import ZenTaoClient
 
 
 def my_tasks(client: ZenTaoClient) -> list[dict[str, Any]]:

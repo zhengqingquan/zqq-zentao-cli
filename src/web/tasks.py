@@ -44,8 +44,7 @@ def fetch_execution_tasks(sess: Session, execution_id: str | int) -> list[dict[s
     rows = parse_dtable_rows(html)
     if not rows:
         raise SystemExit(
-            f"Failed to parse execution task list HTTP {r['status']}. "
-            f"raw[:120]={r['raw'][:120]!r}"
+            f"Failed to parse execution task list HTTP {r['status']}. raw[:120]={r['raw'][:120]!r}"
         )
     return [summarize_task_row(x) for x in rows]
 

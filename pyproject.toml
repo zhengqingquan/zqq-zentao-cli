@@ -8,16 +8,25 @@ requires-python = ">=3.10"
 dependencies = []
 
 [project.scripts]
-zentao = "cli:main"
+zentao = "zqq_zentao_cli.cli:main"
 
 [build-system]
 requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-package-dir = {"" = "src"}
-py-modules = ["cli", "config", "capabilities", "factory", "protocol"]
-packages = ["web", "rest", "services"]
+packages = [
+    "zqq_zentao_cli",
+    "zqq_zentao_cli.web",
+    "zqq_zentao_cli.rest",
+    "zqq_zentao_cli.services",
+]
+
+[tool.setuptools.package-dir]
+"zqq_zentao_cli" = "src"
+"zqq_zentao_cli.web" = "src/web"
+"zqq_zentao_cli.rest" = "src/rest"
+"zqq_zentao_cli.services" = "src/services"
 
 [tool.ruff]
 line-length = 100

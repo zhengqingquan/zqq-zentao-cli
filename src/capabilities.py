@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from config import Backend, env_backend, resolve_token
+from .config import Backend, env_backend, resolve_token
 
 BackendName = Literal["web", "rest"]
 

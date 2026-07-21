@@ -6,10 +6,10 @@ from __future__ import annotations
 
 from typing import Any
 
-from config import insecure_ssl, load_profile, resolve_password
-from web import comments as comments_api
-from web import tasks as tasks_api
-from web.session import Session
+from ..config import insecure_ssl, load_profile, resolve_password
+from . import comments as comments_api
+from . import tasks as tasks_api
+from .session import Session
 
 
 class WebClient:
@@ -62,9 +62,7 @@ class WebClient:
         self._ensure_login()
         return comments_api.list_comments(self._sess, object_type, object_id)
 
-    def add_comment(
-        self, object_type: str, object_id: str | int, comment: str
-    ) -> dict[str, Any]:
+    def add_comment(self, object_type: str, object_id: str | int, comment: str) -> dict[str, Any]:
         self._ensure_login()
         return comments_api.add_comment(self._sess, object_type, object_id, comment)
 

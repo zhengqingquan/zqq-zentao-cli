@@ -14,12 +14,7 @@ ZenTao dual-backend CLI: **Web (PATHINFO + Cookie)** and **REST (Token)**.
 
 ```bash
 pip install -e .
-```
-
-After install, use the `zentao` command. Or run without installing:
-
-```bash
-python zentao.py -h
+zentao -h
 ```
 
 ## Configuration
@@ -71,16 +66,15 @@ zentao comment edit 1063694 "updated comment"
 ## Layout
 
 ```
-zentao.py          # entry
-src/
-  cli.py           # CLI
-  config.py        # config
-  factory.py       # client factory by backend
-  web/             # Cookie + PATHINFO
-  rest/            # Token + /api.php/v1
-  services/        # domain ops
-zentao-har-apis.md # Web API notes
-LICENSE            # MIT
+src/                 # installed as package zqq_zentao_cli; console: zentao
+  cli.py
+  config.py
+  factory.py
+  web/               # Cookie + PATHINFO
+  rest/              # Token + /api.php/v1
+  services/
+zentao-har-apis.md   # Web API notes
+LICENSE              # MIT
 ```
 
 ## License

@@ -13,7 +13,7 @@ import urllib.parse
 import urllib.request
 from typing import Any
 
-from config import USER_AGENT, md5_hex
+from ..config import USER_AGENT, md5_hex
 
 
 class Session:
@@ -122,8 +122,7 @@ class Session:
         )
         if not ok_json and not has_session:
             raise SystemExit(
-                f"Web login failed HTTP {r['status']}: {r['raw'][:120]}. "
-                "Check ZENTAO_PASSWORD."
+                f"Web login failed HTTP {r['status']}: {r['raw'][:120]}. Check ZENTAO_PASSWORD."
             )
         if not self.cookies.get("zentaosid"):
             raise SystemExit("Login succeeded but zentaosid cookie is missing")

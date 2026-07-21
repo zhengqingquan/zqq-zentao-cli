@@ -28,8 +28,7 @@ def load_profile() -> dict[str, str]:
 
     if not CONFIG_PATH.is_file():
         raise SystemExit(
-            "Config not found. Set ZENTAO_SERVER + ZENTAO_ACCOUNT, "
-            f"or create {CONFIG_PATH}"
+            f"Config not found. Set ZENTAO_SERVER + ZENTAO_ACCOUNT, or create {CONFIG_PATH}"
         )
     cfg = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
     key = cfg.get("currentProfile")

@@ -99,11 +99,7 @@ def looks_auth_fail(r: dict[str, Any]) -> bool:
 
 def looks_write_fail(r: dict[str, Any]) -> bool:
     data = r.get("data")
-    return (
-        isinstance(data, dict)
-        and data.get("result") == "fail"
-        and not data.get("status")
-    )
+    return isinstance(data, dict) and data.get("result") == "fail" and not data.get("status")
 
 
 def is_write_success(data: Any) -> bool:

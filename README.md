@@ -14,12 +14,7 @@
 
 ```bash
 pip install -e .
-```
-
-安装后可直接使用 `zentao` 命令；也可不安装，用仓库入口：
-
-```bash
-python zentao.py -h
+zentao -h
 ```
 
 ## 配置
@@ -71,16 +66,15 @@ zentao comment edit 1063694 "新备注"
 ## 目录结构
 
 ```
-zentao.py          # 入口
-src/
-  cli.py           # 命令行
-  config.py        # 配置
-  factory.py       # 按 backend 创建客户端
-  web/             # Cookie + PATHINFO
-  rest/            # Token + /api.php/v1
-  services/        # 领域操作
-zentao-har-apis.md # Web 接口说明
-LICENSE            # MIT
+src/                 # 安装后映射为包 zqq_zentao_cli，入口命令：zentao
+  cli.py
+  config.py
+  factory.py
+  web/               # Cookie + PATHINFO
+  rest/              # Token + /api.php/v1
+  services/
+zentao-har-apis.md   # Web 接口说明
+LICENSE              # MIT
 ```
 
 ## 许可证

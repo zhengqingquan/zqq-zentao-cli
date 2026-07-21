@@ -11,12 +11,12 @@ Auth:
   - Backend: --backend / ZENTAO_BACKEND = web|rest|auto
 
 Usage:
-  python zentao.py whoami
-  python zentao.py --backend rest whoami
-  python zentao.py my-tasks
-  python zentao.py tasks --execution 1664
-  python zentao.py task 39973
-  python zentao.py comment list task 39973
+  zentao whoami
+  zentao --backend rest whoami
+  zentao my-tasks
+  zentao tasks --execution 1664
+  zentao task 39973
+  zentao comment list task 39973
 
 Never print Cookie / password / Token.
 """
@@ -25,13 +25,12 @@ from __future__ import annotations
 
 import argparse
 import json
-import sys
 from typing import Any
 
-from factory import create_client
-from services import comments as comment_svc
-from services import tasks as task_svc
-from web.parse import strip_tags
+from .factory import create_client
+from .services import comments as comment_svc
+from .services import tasks as task_svc
+from .web.parse import strip_tags
 
 
 def print_json(obj: Any) -> None:

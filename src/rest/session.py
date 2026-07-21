@@ -12,7 +12,7 @@ import urllib.parse
 import urllib.request
 from typing import Any
 
-from config import USER_AGENT, resolve_password, resolve_token
+from ..config import USER_AGENT, resolve_password, resolve_token
 
 
 class RestSession:

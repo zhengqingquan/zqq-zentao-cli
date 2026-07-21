@@ -7,8 +7,8 @@ from __future__ import annotations
 from typing import Any
 from urllib.parse import quote
 
-from config import insecure_ssl, load_profile
-from rest.session import RestSession
+from ..config import insecure_ssl, load_profile
+from .session import RestSession
 
 
 def _user_field(val: Any) -> str | None:
@@ -119,9 +119,7 @@ class RestClient:
             query={"page": "1", "limit": "200"},
         )
         if not r["ok"]:
-            raise SystemExit(
-                f"REST execution tasks failed HTTP {r['status']}: {r['raw'][:160]}"
-            )
+            raise SystemExit(f"REST execution tasks failed HTTP {r['status']}: {r['raw'][:160]}")
         rows = _extract_task_list(r["data"])
         if not rows and r["data"]:
             raise SystemExit(
@@ -143,9 +141,7 @@ class RestClient:
     def list_comments(self, object_type: str, object_id: str | int) -> list[Any]:
         raise SystemExit("comment.list requires --backend web")
 
-    def add_comment(
-        self, object_type: str, object_id: str | int, comment: str
-    ) -> dict[str, Any]:
+    def add_comment(self, object_type: str, object_id: str | int, comment: str) -> dict[str, Any]:
         raise SystemExit("comment.add requires --backend web")
 
     def edit_comment(self, action_id: str | int, comment: str) -> dict[str, Any]:

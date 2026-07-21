@@ -4,10 +4,10 @@
 
 from __future__ import annotations
 
-from capabilities import BackendName, resolve_backend
-from protocol import ZenTaoClient
-from rest import RestClient
-from web import WebClient
+from .capabilities import BackendName, resolve_backend
+from .protocol import ZenTaoClient
+from .rest import RestClient
+from .web import WebClient
 
 
 def create_client(
