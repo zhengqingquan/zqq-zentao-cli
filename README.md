@@ -11,7 +11,7 @@
 - `my-*` 仅为当前用户快捷入口；查同事用范围列表 + `--assignedTo` 等过滤（目标面，逐步实现）
 - Web 承担备注与 REST 不便的「我的」列表；REST 适合结构化浏览/过滤与写接口
 - 与官方 [zentao-cli](https://github.com/easysoft/zentao-cli) 共用环境变量与 `~/.config/zentao/zentao.json`（本工具另存 `webCookies`）；**本工具自建完整能力面，含 CRUD**
-- Web PATHINFO 接口说明见 [docs/zentao-apis.md](./docs/zentao-apis.md)
+- Web PATHINFO 接口说明见 [docs/zentao-web-pathinfo.md](./docs/zentao-web-pathinfo.md)
 - REST API v1（22.3 源码整理）见 [docs/zentao-rest-apiv1.md](./docs/zentao-rest-apiv1.md)
 - REST API v2 路由全文见 [docs/zentao-rest-apiv2.md](./docs/zentao-rest-apiv2.md)（本工具未用）
 - **命令面契约（含分期）**见 [docs/cli-surface.md](./docs/cli-surface.md)
@@ -200,7 +200,7 @@ src/                 # 安装后映射为包 zqq_zentao_cli，入口命令：zqq
   rest/              # Token + /api.php/v1（含 resources.py 只读注册表）
   services/
 docs/
-  zentao-apis.md      # Web PATHINFO 接口说明
+  zentao-web-pathinfo.md  # Web PATHINFO 接口说明
   zentao-rest-apiv1.md # REST API v1（22.3 源码整理）
   zentao-rest-apiv2.md # REST API v2 路由全文（未接入）
   cli-surface.md      # 命令面契约（my-* / CRUD 分期）

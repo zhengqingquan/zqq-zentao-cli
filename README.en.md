@@ -11,7 +11,7 @@ ZenTao dual-backend CLI: **Web (PATHINFO + Cookie)** and **REST (Token)**.
 - `my-*` is only a shortcut for the logged-in user; use scoped lists + `--assignedTo` (etc.) for others (target API, rolling out)
 - Web handles comments and “My” pages where REST is awkward; REST fits structured browse/filter and writes
 - Shares env vars and `~/.config/zentao/zentao.json` with the official [zentao-cli](https://github.com/easysoft/zentao-cli) (this tool also stores `webCookies`); **this tool owns a full capability surface including CRUD**
-- Web PATHINFO API notes: [docs/zentao-apis.md](./docs/zentao-apis.md)
+- Web PATHINFO API notes: [docs/zentao-web-pathinfo.md](./docs/zentao-web-pathinfo.md)
 - REST API v1 (from 22.3 source): [docs/zentao-rest-apiv1.md](./docs/zentao-rest-apiv1.md)
 - REST API v2 full route list: [docs/zentao-rest-apiv2.md](./docs/zentao-rest-apiv2.md) (not used by this CLI)
 - **CLI contract (phased)**: [docs/cli-surface.md](./docs/cli-surface.md)
@@ -200,7 +200,7 @@ src/                 # installed as package zqq_zentao_cli; console: zqq-zentao
   rest/              # Token + /api.php/v1 (incl. resources.py read-only registry)
   services/
 docs/
-  zentao-apis.md      # Web PATHINFO notes
+  zentao-web-pathinfo.md  # Web PATHINFO notes
   zentao-rest-apiv1.md # REST API v1 (from 22.3 source)
   zentao-rest-apiv2.md # REST API v2 full routes (not wired)
   cli-surface.md      # CLI contract (my-* / phased CRUD)

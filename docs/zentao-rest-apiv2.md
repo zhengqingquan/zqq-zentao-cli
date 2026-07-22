@@ -6,7 +6,7 @@
 
 **本工具 `zqq-zentao` 当前只用 v1，未接 v2。** 本文供对照 / 评估（如「我的」列表、服务端 search）。
 
-Web PATHINFO 见 [zentao-apis.md](./zentao-apis.md)；通道选择见 [channel-matrix.md](./channel-matrix.md)。
+Web PATHINFO 见 [zentao-web-pathinfo.md](./zentao-web-pathinfo.md)；通道选择见 [channel-matrix.md](./channel-matrix.md)。
 
 ## 公共约定
 

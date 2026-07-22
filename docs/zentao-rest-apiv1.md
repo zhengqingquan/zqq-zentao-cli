@@ -3,7 +3,7 @@
 从源码 `zentao/zentao-22.3-php8.1/zentaopms` 整理：路由见 `config/apiv1.php`，实现见 `api/v1/entries/*.php`。
 本项目 REST 通道（`src/rest/`）基址为 `{server}/api.php/v1`。
 
-Web PATHINFO 接口见 [zentao-apis.md](./zentao-apis.md)。
+Web PATHINFO 接口见 [zentao-web-pathinfo.md](./zentao-web-pathinfo.md)。
 REST API **v2** 路由全文见 [zentao-rest-apiv2.md](./zentao-rest-apiv2.md)（本工具未用）。
 
 ## 公共约定
@@ -51,7 +51,7 @@ Accept: application/json
 | GET/PUT/DELETE/POST 动作 | `/bugs/:id`…、`/stories/:id`… | `bug` / `story` 详情与写 |
 | GET | 见下方完整清单「本项目」列 | `products`/`stories`/`bugs`/… 等只读子命令 |
 
-> 备注（comment）在路由表有 `/comments`，但开源包 **无** `comments.php` entry，故本工具走 Web PATHINFO，见 [zentao-apis.md](./zentao-apis.md)。
+> 备注（comment）在路由表有 `/comments`，但开源包 **无** `comments.php` entry，故本工具走 Web PATHINFO，见 [zentao-web-pathinfo.md](./zentao-web-pathinfo.md)。
 > 只读列表/详情：多数由 `src/rest/resources.py` 注册；**写**：`bug` / `task` / `story` 的 create/update/delete 与状态动作已接（见下方「本项目」列与 `docs/cli-surface.md`）。缺 entry 的路由仍勿依赖。
 
 

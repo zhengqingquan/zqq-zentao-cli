@@ -261,9 +261,10 @@ zqq-zentao comment list|add|edit …
 ### P3 — 体验
 
 - ✅ Web `my-*` 注册表化（`web/my_pages.py`）
+- ✅ 分页：Web 大 `recPerPage` / 翻页拉全（my-*、execution tasks）
+- ✅ bugs/stories 本人/状态 → REST browseType（查他人仍客户端）
+- 次要 `my-*`（requirements/epics/docs/…）与用户表短缓存：见 [handoff.md](./handoff.md)
 - 双通道失败降级（可选）
-- 分页：Web 大 `recPerPage` / 翻页拉全（my-*、execution tasks 已实现）
-- 用户表本地短缓存（姓名解析）
 
 ---
 
@@ -275,7 +276,7 @@ zqq-zentao comment list|add|edit …
 | `my-tasks` / `my-bugs` + `--type`/`--scope` | ✅ |
 | 其它 `my-*`（stories/todos/test…） | ✅（epic/requirement/docs 等仍 ⏳） |
 | CRUD / 状态动作 | bug/task/story ✅ REST；P2 模块 ⏳；`comment` 写 ✅ |
-| 文档宣称「做 CRUD」 | ⏳ → 随本文与 README 同步 |
+| 文档宣称「做 CRUD」 | ✅ README / 本文已同步（P2 模块仍 ⏳） |
 
 ---
 
@@ -294,3 +295,4 @@ zqq-zentao comment list|add|edit …
 | 2026-07-23 | 初版：边界拍板（放开写、`my-* --type`、更多我的、本工具做 CRUD） |
 | 2026-07-23 | 补充定位：全面 CLI；不限本人；`my-*` 与 scope+过滤分工 |
 | 2026-07-23 | P0-B：`my_pages` 注册表；多 my-* + `--type`/`--scope` |
+| 2026-07-23 | F/P3 与 handoff 对齐：CRUD 文档已同步；体验项指 handoff |

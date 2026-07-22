@@ -1,172 +1,130 @@
 # 交接：待办与现状（handoff）
 
-面向接手开发 / Agent：本文只写 **还要做什么** 和 **怎么接着干**。完整命令面契约见 [cli-surface.md](./cli-surface.md)；**REST vs Web 何时用哪边**见 [channel-matrix.md](./channel-matrix.md)。
+面向接手开发 / Agent：**只写未完成项与怎么接着干**。  
+契约（命令面 / ✅⏳）→ [cli-surface.md](./cli-surface.md)；通道选择 → [channel-matrix.md](./channel-matrix.md)；非目标 → cli-surface **G**。
 
-**仓库**：`zqq-zentao-cli`，命令入口 `zqq-zentao`（勿与官方 npm `zentao` 混淆）。  
+**仓库**：`zqq-zentao-cli`，入口 `zqq-zentao`（勿与官方 npm `zentao` 混淆）。  
+**禅道锚点**：22.3（本地只读源码 `…/zentaopms`）；本工具用 **REST APIv1**，未接 v2。  
 **更新日期**：2026-07-23  
 
----
+边界已拍板（勿回退）：放开写、`my-<noun> [--type]`、work+contribute 常用「我的」、自建 CRUD、查他人走 scope+过滤。细节见 cli-surface。
 
-## 1. 产品边界（已拍板，勿回退）
+基线已落地（细节勿在此展开）：双通道登录；REST 只读 registry；`my-*`（tasks 默认可 rest，其余 web）；Web 翻页拉全；`comment`；tasks/bugs/stories 过滤（实名/`--status`/`--pick`）；bug/task/story REST 写 + `--yes`；bugs/stories 本人/状态 browseType 映射。里程碑用 `git log --oneline -20`。
 
-| # | 结论 |
-|---|------|
-| 1 | **放开写**：create / update / delete / 状态动作，不只备注 |
-| 2 | 「我的」命令：`my-<noun> [--type …]` |
-| 3 | 「我的」范围：work + contribute 常用模块（不限四个） |
-| 4 | **本工具自建 CRUD**，不推给官方 CLI |
-| 5 | **不限本人**：查/改他人数据用范围列表 + 过滤；`my-*` 仅当前用户快捷入口 |
-
-通道：REST 优先；「我的」/备注/REST 难用时走 Web PATHINFO + zin dtable。能力矩阵在 `src/capabilities.py`；场景对照表见 [channel-matrix.md](./channel-matrix.md)。
+遵守 [`.cursor/rules/desensitize.mdc`](../.cursor/rules/desensitize.mdc)（文档/测试勿写真实人名）。
 
 ---
 
-## 2. 已经完成（可当基线）
+## 1. 未完成待办
 
-| 项 | 说明 |
-|----|------|
-| 双通道登录 | `login` 写 Cookie + Token；`whoami` / `ping` |
-| REST 只读浏览 | `rest/resources.py` 注册表：产品/项目/执行/需求/Bug… |
-| `my-tasks` | 默认 work+assignedTo：web + rest；其它 type 强制 web |
-| `my-bugs` 等「我的」 | **仅 web**；注册表 `web/my_pages.py`；`--type` / `--scope` |
-| Web 翻页拉全 | `fetch_dtable_list_paginated`：默认 `recPerPage=200` + pageID 循环；覆盖全部 `my-*` 与 `execution` 任务列表 |
-| `comment list/add/edit` | **仅 web** |
-| 查别人 | `tasks` / `bugs` / `stories`：`--assignedTo` / `--openedBy`（支持实名）+ `--status` + `--pick` |
-| bug / task / story 写 | REST：`create`/`update`/`delete` + 状态动作；写前确认 + `--yes`（非 TTY 必带） |
-| 契约文档 | `docs/cli-surface.md`；README 已指向 |
-| 提交规范 | 用 `.cursor/scripts/git-commit.ps1`，禁止直接 `git commit`；默认不 push |
+### P1 — 真机写联调（宣称「全面写」前的门槛；可选另开）
 
-近期相关提交（便于 `git log`）：
+此前 bug/task/story 写仅离线测。在**隔离禅道**上验，勿默认打生产。
 
-- `feat: add REST story write and status actions with --yes confirm`
-- `feat: paginate Web my-* and execution task lists beyond default 20`
-- `feat: add REST bug/task write and status actions with --yes confirm`
-- `feat: add my-* --type/--scope registry (stories, todos, tests, feedbacks, tickets)`
-- `feat: resolve users by realname; add --status/--pick; ignore .cursor`
-- `feat: add --assignedTo/--openedBy filters for tasks, bugs, stories`
+建议 checklist（均带 `--yes`，非 TTY 必须）：
 
----
+1. `bug create` → `assign` / `resolve` / `close` → `activate`；抽测 `update` / `delete`
+2. `task create` → `start` / `finish` / `close` → `activate`；抽测 `assign`
+3. `story create` → `change` / `review` 族 / `close` → `activate`
+4. 失败：对照 `api/v1/entries/*`，再考虑 Web 表单回退（学 `comment`）
 
-## 3. 待办清单（按优先级）
+- [ ] 隔离环境联调通过（或明确记录「已知失败 + 回退计划」）
 
-### P0 — 已完成（基线，勿回退）
+### P2 — 其余 CUD（另开；有 REST entry 优先）
 
-- [x] **P0-A**：姓名 → 账号、`--status`、`--pick`/默认列、鉴权日志走 stderr
-- [x] **P0-B**：`my-* --type/--scope`；stories/todos/test…；空 dtable = 成功
+契约见 cli-surface **D**。实现时：先查 `docs/zentao-rest-apiv1.md` + `api/v1/entries/`，模式抄 `services/bugs.py` / `tasks.py` / `stories.py` + `rest/writes.py`。
 
-### P1 — 核心写（全面操作的关键）
+| 优先建议 | 模块 | 切入 |
+|----------|------|------|
+| **先做** | `todo` | REST todo 相关 entry；我的列表已有 `my-todos` |
+| **先做** | `testcase` / `testtask`（及 `testsuite`） | `api/v1/entries/` 下 test*；只读已有 |
+| 其次 | `feedback` / `ticket` | 状态动作 `activate`/`close` 等；`my-feedbacks`/`my-tickets` 已有 |
+| 其次 | `productplan` / `release` / `build` | 只读已有；写按 entry |
+| 更后 | `program` / `product` / `project` / `execution` | 权限高 |
+| 契约另轨 | `requirement` / `epic` | 可并入 story 族或独立；见 cli-surface |
 
-优先 REST（见 `docs/zentao-rest-apiv1.md`）；不通再 Web 表单（学 `comment`）。
+- [ ] 上述模块按需落地，并同步 cli-surface 状态列
 
-- [x] **bug**：`create` / `update` / `delete` + `confirm` / `resolve` / `close` / `activate` / `assign`（REST）
-- [x] **task**：`create` / `update` / `delete` + `start` / `finish` / `close` / `activate` / `assign`（REST）
-- [x] **story**：`create` / `update` / `delete` + `change` / `close` / `activate` / `assign` / `review` / `submitreview` / `recall`（REST）
-- [x] 写前确认；破坏性操作支持 `--yes`（非 TTY 必须 `--yes`）
-- [ ] **联调**：隔离环境对真实禅道验 bug/task/story 写（此前仅离线测）；失败再补 Web 回退
-- [x] 更新 skill：已实现才执行，未实现对照本文 / `cli-surface`，勿臆造
-
-### P2 — 其余 CUD
-
-- [ ] productplan / release / build / testcase / testsuite / testtask
-- [ ] feedback / ticket / todo 写与状态动作
-- [ ] program / product / project / execution 写（权限高，可更后）
-
-### P3 — 工程与体验 / 优化
-
-已完成：
-
-- [x] Web「我的」注册表化（`web/my_pages.py`）
-- [x] Web 列表大 `recPerPage` / 翻页拉全（my-*、execution tasks）
-
-仍建议优化（按收益排序）：
+### P3 — 体验 / 补齐（按收益）
 
 | 优先级 | 项 | 为什么 | 切入点 |
 |--------|-----|--------|--------|
-| **中** | **用户表短缓存** | 每次实名解析都打 users，批量查询重复 | `user_resolve.py` + 本地 TTL 缓存（按 server+account） |
-| **中** | **补齐次要 my-\*** | `my-requirements` / `my-epics` / `my-docs` / `my-projects` / `my-executions` 契约仍 ⏳ | 扩 `my_pages.py` 注册表即可复用翻页 |
-| **低** | **双通道失败降级** | `auto` 时 rest 挂了自动试 web（或反之） | `capabilities` / `factory`；可选，勿默默吞错 |
-| **低** | **REST my-tasks 与 Web 翻页一致体验** | REST 侧分页已有 workaround；确认大列表不截断 | `rest/tasks.py`；对照 Web 200/页行为 |
-| **低** | **脱敏 / 日志** | 勿把真实同事名写进仓库文档与测试夹具 | `.cursor/rules/desensitize.mdc` |
-| **已做** | **bugs/stories 服务端 browseType** | 本人/状态类过滤走 REST `status=`；查他人仍客户端全量 | `rest/browse_filter.py` + `services/resources.py` |
+| **中** | 补齐次要 `my-*` | `my-requirements` / `my-epics` / `my-docs` / `my-projects` / `my-executions` 契约 ⏳ | 扩 `web/my_pages.py`（复用翻页） |
+| **中** | 用户表短缓存 | 实名解析重复打 users | `user_resolve.py`，TTL 按 server+登录账号 |
+| **低** | 通用过滤补齐 | `--finishedBy` / `--resolvedBy` / `--pri`；非 users 的 `--search` 仍 ⏳ | 见 cli-surface「通用过滤」；能 REST 则映射，否则客户端 |
+| **低** | 双通道失败降级 | `auto` 时一侧挂了试另一侧 | `capabilities` / `factory`；勿默默吞错 |
+| **低** | REST my-tasks 大列表 | 确认分页 workaround 不截断 | `rest/tasks.py`；对照 Web 200/页 |
 
-### 文档 / 技能（随实现更新）
+不在本表追、但契约仍 ⏳ 的项：一律以 [cli-surface.md](./cli-surface.md) 为准。
 
-- [x] 每完成一块，改 `cli-surface.md` 状态列（✅/⏳）与本节勾选（P1 核心三角已 ✅；P2 仍 ⏳）
-- [x] 同步 `README.md` / `README.en.md`：写命令、`my-* --type`、翻页已拉全、勿再暗示「只能备注」
-- [x] 个人 skill：`~/.cursor/skills/zqq-zentao/SKILL.md`（若仍使用）对齐 cli-surface
+### 文档纪律（实现时做）
 
-参考 PATHINFO（ZenTao 22.3，含分页段）：
-
-- work/contribute：`/my-{scope}-{mode}-{browseType}-{param}-{orderBy}-{recTotal}-{recPerPage}-{pageID}.html?zin=1`
-- todo：`/my-todo-{browseType}--all-{orderBy}-{recTotal}-{recPerPage}-{pageID}.html?zin=1`
-- 源码：`zentao-22.3-php8.1/.../module/my/control.php`
+每完成一块：改 cli-surface 状态列；勾选本节；必要时改 README / 个人 skill。本文不重复维护大段 ✅ 清单。
 
 ---
 
-## 4. 已知坑（接手必读）
+## 2. 已知坑（接手必读）
 
 | 现象 | 原因 / 对策 |
 |------|-------------|
-| 问「张三的任务」 | `--assignedTo 张三` 会解析实名；多命中时报错列候选。也可用 `users --search 张三` |
-| `GET /bugs` 要 product id | 无全局 my-bugs REST；用 Web `my-bugs` 或 `bugs --product` |
-| 产品下 `assignedTo` query 无效 | REST 无任意账号过滤；**本人**已映射 `assigntome`/`assignedtome`（见 `browse_filter.py`）；查他人仍客户端全量（stderr 提示） |
-| `GET /tasks` 无 execution | 默认像「我的任务」；查别人用 `--assignedTo`（`search=1`） |
-| `tasks --openedBy` 单独用 | API search 无 openedBy → 须 `-e` 或同时 `--assignedTo` |
-| 只有 Token 无 Cookie | Web 命令（`my-*`/`comment`）失败 → 需 `login` 带密码 |
-| Web 默认每页 20 | **已修**：CLI 用 `recPerPage=200` + 翻页；勿再改回短 PATHINFO 无分页段 |
-| APIv1 my-tasks 分页参数错位 | 已在 `rest/tasks.py` 用 query 绕过，勿轻易改 |
-| Windows 管道中文乱码 | 注意 `PYTHONIOENCODING=utf-8`；解析 JSON 时勿依赖控制台编码 |
-| bug/task/story 写仅离线测 | 真机写前用隔离环境 + `--yes`；失败对照源码 entry 再补 |
+| 问「张三的任务」 | `--assignedTo 张三` 解析实名；多命中列候选。或 `users --search 张三` |
+| `GET /bugs` 要 product | 无全局 my-bugs REST → Web `my-bugs` 或 `bugs --product` |
+| 查他人 bugs/stories | REST 无任意账号过滤；本人/状态已走 `browse_filter.py`；他人仍客户端全量（stderr 提示）。矩阵见 channel-matrix |
+| `GET /tasks` 无 execution | 默认像「我的任务」；查别人 `--assignedTo`（`search=1`） |
+| `tasks --openedBy` 单独用 | search 无 openedBy → 须 `-e` 或同时 `--assignedTo` |
+| 只有 Token 无 Cookie | `my-*` / `comment` 失败 → `login` 带密码 |
+| Web 默认每页 20 | **已修** `recPerPage=200` + 翻页；勿改回短 PATHINFO |
+| APIv1 my-tasks 分页错位 | `rest/tasks.py` query 绕过，勿轻易改 |
+| Windows 管道中文乱码 | `PYTHONIOENCODING=utf-8`；解析 JSON 勿依赖控制台编码 |
+| bug/task/story 写仅离线测 | 见 **P1 联调**；隔离环境 + `--yes` |
 
-本地禅道源码（接口对照）：`G:\codelib\zentao-22.3-php8.1\zentao-22.3-php8.1\zentaopms`（若路径变更以本机为准）。
-
-查 REST/Web 时遵守仓库规则 [`.cursor/rules/zentao-source-lookup.mdc`](../.cursor/rules/zentao-source-lookup.mdc)（哪里查什么已列表）。
+源码查阅：[`.cursor/rules/zentao-source-lookup.mdc`](../.cursor/rules/zentao-source-lookup.mdc)。  
+PATHINFO 形状：[zentao-web-pathinfo.md](./zentao-web-pathinfo.md)（work/contribute/todo 分页段）。
 
 ---
 
-## 5. 关键代码入口
+## 3. 关键代码入口
 
 | 路径 | 职责 |
 |------|------|
 | `src/cli.py` | 命令注册与分发 |
 | `src/capabilities.py` / `factory.py` | 选 web / rest |
 | `src/user_resolve.py` | 姓名/账号解析、`users --search` |
-| `src/list_filter.py` | `--assignedTo` / `--openedBy` / `--status` 客户端过滤 |
-| `src/rest/resources.py` | REST 只读注册表（含 `user_filters`） |
+| `src/list_filter.py` | 客户端用户/状态过滤 |
+| `src/rest/resources.py` | REST 只读注册表 |
 | `src/rest/tasks.py` | my-tasks / search / execution 任务 |
 | `src/rest/writes.py` | REST 写路径与响应校验 |
-| `src/rest/browse_filter.py` | bugs/stories → REST browseType（`status=`）规划 |
+| `src/rest/browse_filter.py` | bugs/stories → REST `status=` browseType |
 | `src/confirm_util.py` / `payload.py` | 写前确认、`--data` 合并 |
-| `src/services/stories.py` | story 写与状态动作（确认层） |
-| `src/web/my_pages.py` | 「我的」Web 页注册表（`--type` / `--scope` + 分页 PATHINFO） |
-| `src/web/lists.py` | zin dtable：单页 + **翻页拉全** |
-| `src/web/bugs.py` / `web/tasks.py` / `web/comments.py` | Web 拉页与解析 |
-| `src/web/parse.py` | zin / dtable |
-| `docs/cli-surface.md` | 命令面契约 |
-| `docs/channel-matrix.md` | REST vs Web 场景矩阵与挖缺口方法 |
-| `docs/zentao-apis.md` / `zentao-rest-apiv1.md` / `zentao-rest-apiv2.md` | Web / REST v1 / REST v2 接口说明 |
+| `src/services/bugs.py` / `tasks.py` / `stories.py` | 写与状态动作（确认层） |
+| `src/web/my_pages.py` | 「我的」Web 注册表 + 分页 PATHINFO |
+| `src/web/lists.py` | zin dtable 翻页拉全 |
+| `src/web/comments.py` | 备注 Web |
+| `docs/cli-surface.md` / `channel-matrix.md` | 契约 / 通道矩阵 |
+| `docs/zentao-rest-apiv1.md` / `zentao-web-pathinfo.md` | 接口对照（v2 见 `zentao-rest-apiv2.md`，未用） |
 
-测试：`python -m pytest`（无第三方依赖；勿对真实禅道写破坏性测试除非有隔离环境）。
+测试：`python -m pytest`（勿对真实禅道写破坏性测试，除非隔离环境）。
 
 ---
 
-## 6. 建议下一刀（给 Agent 的一句话）
+## 4. 建议下一刀
 
-> **优先用户表短缓存**或补 `my-requirements` / `my-epics`（低成本）。P2 次要模块写另开。查他人 bugs/stories 仍无 REST 任意账号过滤（已文档化）；真机写联调另开，勿默认对生产环境试写。
+总裁决（按序，可跳过已不需要的）：
 
-备选：双通道失败降级；或 REST my-tasks 大列表不截断确认。
+1. **P1 联调**（若要对外宣称 bug/task/story 全面写）→ 隔离环境 checklist  
+2. **低成本 `my-*`**：`my-requirements` / `my-epics`（扩注册表）  
+3. **用户表短缓存**  
+4. **P2 写**：优先 `todo` 或 `testcase` 族；另开 PR/会话  
+
+勿默认对生产试写。查他人 bugs/stories 无 REST 任意账号过滤——已文档化，非本刀范围。
+
+备选：双通道降级；REST my-tasks 大列表确认。
 
 ---
 
-## 7. 修订
+## 5. 修订
 
 | 日期 | 说明 |
 |------|------|
-| 2026-07-23 | 初版交接文档（对齐已拍板边界与当前已实现过滤） |
-| 2026-07-23 | P0-A：姓名解析、`--status`、`--pick`/默认列、空 dtable 对齐 |
-| 2026-07-23 | P0-B：`my-* --type/--scope` 与 my-stories/todos/test… 注册表 |
-| 2026-07-23 | P1：bug/task REST 写与状态动作 + `--yes` 确认 |
-| 2026-07-23 | P3：Web my-\*/execution 翻页拉全；重写「已完成 / 优化表 / 下一刀」 |
-| 2026-07-23 | P1：story REST 写与状态动作；下一刀改为服务端过滤 / P2 |
-| 2026-07-23 | P3：bugs/stories 映射 REST browseType（本人/状态）；查他人仍客户端 |
-| 2026-07-23 | 新增 docs/channel-matrix.md（REST vs Web 矩阵 + 挖缺口方法） |
+| 2026-07-23 | 初版 → 历经 P0 过滤/`my-*`、P1 三角写、Web 翻页、browseType、channel-matrix |
+| 2026-07-23 | 瘦身：未完成项为主；P1 联调 checklist；P2 切入表；下一刀总裁决；与 cli-surface 去重 |
