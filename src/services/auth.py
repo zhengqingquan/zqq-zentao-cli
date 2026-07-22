@@ -12,7 +12,7 @@ from ..config import (
     env_account,
     env_backend,
     env_server,
-    insecure_ssl,
+    resolve_insecure,
     save_profile_credentials,
     try_resolve_password,
 )
@@ -47,24 +47,25 @@ def do_login(
     account: str | None = None,
     password: str | None = None,
     backend: str | None = None,
+    insecure: bool | None = None,
 ) -> dict[str, Any]:
     srv, acc, pwd = resolve_login_args(server=server, account=account, password=password)
     chosen: Backend | str = (backend or env_backend() or "auto").strip().lower()
     if chosen not in ("web", "rest", "auto"):
         raise SystemExit(f"Invalid backend={chosen!r}, expected web|rest|auto")
 
-    insecure = insecure_ssl()
+    skip_tls = resolve_insecure(insecure)
     did_web = False
     did_rest = False
 
     if chosen in ("web", "auto"):
-        sess = Session(srv, insecure=insecure)
+        sess = Session(srv, insecure=skip_tls)
         sess.login(acc, pwd)
         save_profile_credentials(srv, acc, cookies=dict(sess.cookies))
         did_web = True
 
     if chosen in ("rest", "auto"):
-        rest = RestSession(srv, insecure=insecure, account=acc)
+        rest = RestSession(srv, insecure=skip_tls, account=acc)
         token = rest.login(acc, pwd, force_password=True, prefer_stored=False)
         save_profile_credentials(srv, acc, token=token)
         did_rest = True
@@ -75,7 +76,7 @@ def do_login(
     if did_rest:
         parts.append("token")
     print(
-        f"login ok: account={acc} server={srv} saved={','.join(parts)}",
+        f"login ok: account={acc} server={srv} saved={','.join(parts)} insecure={skip_tls}",
         file=sys.stderr,
     )
     return {
@@ -84,4 +85,5 @@ def do_login(
         "savedWebCookies": did_web,
         "savedToken": did_rest,
         "backend": chosen,
+        "insecure": skip_tls,
     }

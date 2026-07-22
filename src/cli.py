@@ -8,9 +8,10 @@ Auth:
   - Or env ZENTAO_SERVER/ZENTAO_URL, ZENTAO_ACCOUNT, ZENTAO_PASSWORD / ZENTAO_TOKEN
   - Caches webCookies + token in ~/.config/zentao/zentao.json (no password on disk)
   - Backend: --backend / ZENTAO_BACKEND = web|rest|auto
+  - TLS: --insecure / --secure / ZENTAO_INSECURE (default skip verify)
 
 Usage:
-  zqq-zentao login -s https://zentao.example.com -u admin -p secret
+  zqq-zentao --insecure login -s https://zentao.example.com -u admin -p secret
   zqq-zentao whoami
   zqq-zentao my-tasks
   zqq-zentao tasks
@@ -103,6 +104,17 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Transport backend (default: ZENTAO_BACKEND, or auto)",
     )
+    tls = p.add_mutually_exclusive_group()
+    tls.add_argument(
+        "--insecure",
+        action="store_true",
+        help="Skip TLS certificate verification (same idea as official zentao --insecure)",
+    )
+    tls.add_argument(
+        "--secure",
+        action="store_true",
+        help="Verify TLS certificates (overrides default ZENTAO_INSECURE=1)",
+    )
     sub = p.add_subparsers(dest="cmd", required=True)
 
     p_login = sub.add_parser(
@@ -173,9 +185,18 @@ def _capability(args: argparse.Namespace) -> str:
     return args.cmd
 
 
+def _cli_insecure(args: argparse.Namespace) -> bool | None:
+    if args.insecure:
+        return True
+    if args.secure:
+        return False
+    return None
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
+    insecure = _cli_insecure(args)
 
     if args.cmd == "login":
         result = auth_svc.do_login(
@@ -183,12 +204,13 @@ def main(argv: list[str] | None = None) -> int:
             account=args.account,
             password=args.password,
             backend=args.backend,
+            insecure=insecure,
         )
         print_json(result)
         return 0
 
     cap = _capability(args)
-    client = create_client(cap, cli_backend=args.backend)
+    client = create_client(cap, cli_backend=args.backend, insecure=insecure)
 
     if args.cmd == "whoami":
         print_json(client.whoami())

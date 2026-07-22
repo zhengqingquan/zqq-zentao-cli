@@ -49,7 +49,22 @@ zqq-zentao login -s https://zentao.example.com -u your_account -p your_password
 | `ZENTAO_PASSWORD` | 密码（不落盘；`login` 或缺 Cookie/Token 时需要） | ✅ |
 | `ZENTAO_TOKEN` | REST Token（有则优先于文件内 token） | ✅ |
 | `ZENTAO_BACKEND` | `web` \| `rest` \| `auto`（默认 `auto`） | — |
-| `ZENTAO_INSECURE` | 默认 `1` 跳过 TLS 校验；设为 `0` 则校验 | — |
+| `ZENTAO_INSECURE` | 默认 `1` 跳过 TLS 校验；设为 `0` 则校验 | —（官方用 `--insecure`） |
+
+TLS 跳过证书校验（自签 / 内网 HTTPS 常用）：
+
+```bash
+# 全局选项（与官方 zentao --insecure 同义）；也可不写——默认已跳过校验
+zqq-zentao --insecure login -s https://zentao.example.com -u your_account -p your_password
+zqq-zentao --insecure task 39980
+
+# 强制校验证书
+zqq-zentao --secure whoami
+# 或
+# $env:ZENTAO_INSECURE = "0"
+```
+
+优先级：`--insecure` / `--secure` > `ZENTAO_INSECURE`（默认跳过）。
 
 与官方 CLI **共用同一套变量**时请用 `ZENTAO_URL`，不要只设 `ZENTAO_SERVER`。
 

@@ -49,7 +49,22 @@ Env-only setups still work; unauthenticated commands hint you to run `zqq-zentao
 | `ZENTAO_PASSWORD` | Password (not on disk; needed for `login` or when Cookie/Token missing) | ✅ |
 | `ZENTAO_TOKEN` | REST token (overrides file token) | ✅ |
 | `ZENTAO_BACKEND` | `web` \| `rest` \| `auto` (default `auto`) | — |
-| `ZENTAO_INSECURE` | Default `1` skips TLS verify; set `0` to verify | — |
+| `ZENTAO_INSECURE` | Default `1` skips TLS verify; set `0` to verify | — (official uses `--insecure`) |
+
+Skip TLS certificate verification (common for self-signed / internal HTTPS):
+
+```bash
+# Global flag (same idea as official zentao --insecure); optional — default already skips verify
+zqq-zentao --insecure login -s https://zentao.example.com -u your_account -p your_password
+zqq-zentao --insecure task 39980
+
+# Force certificate verification
+zqq-zentao --secure whoami
+# or
+# export ZENTAO_INSECURE=0
+```
+
+Priority: `--insecure` / `--secure` > `ZENTAO_INSECURE` (default skip).
 
 To share env with the official CLI, set `ZENTAO_URL` — do not rely on `ZENTAO_SERVER` alone.
 

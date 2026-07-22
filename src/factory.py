@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 from .capabilities import BackendName, resolve_backend
+from .config import resolve_insecure
 from .protocol import ZenTaoClient
 from .rest import RestClient
 from .web import WebClient
@@ -14,8 +15,10 @@ def create_client(
     capability: str,
     *,
     cli_backend: str | None = None,
+    insecure: bool | None = None,
 ) -> ZenTaoClient:
     backend: BackendName = resolve_backend(capability, cli_backend=cli_backend)
+    skip_tls = resolve_insecure(insecure)
     if backend == "rest":
-        return RestClient()
-    return WebClient()
+        return RestClient(insecure=skip_tls)
+    return WebClient(insecure=skip_tls)

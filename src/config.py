@@ -336,4 +336,16 @@ def env_backend() -> Backend:
 
 
 def insecure_ssl() -> bool:
+    """True = skip TLS verify. Default ZENTAO_INSECURE=1 (skip)."""
     return os.environ.get("ZENTAO_INSECURE", "1") != "0"
+
+
+def resolve_insecure(cli_insecure: bool | None = None) -> bool:
+    """
+    Resolve whether to skip TLS verification.
+    Priority: CLI --insecure/--secure > ZENTAO_INSECURE (default skip).
+    cli_insecure: True=skip, False=verify, None=use env.
+    """
+    if cli_insecure is not None:
+        return bool(cli_insecure)
+    return insecure_ssl()
