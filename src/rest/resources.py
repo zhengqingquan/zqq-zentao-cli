@@ -35,24 +35,20 @@ class Resource:
     required_query: tuple[str, ...] = ()
 
 
-# Commands already registered in cli.py (do not double-register parsers).
-EXISTING_CMDS = frozenset(
+# Hand-written CLI commands (custom parser and/or non-registry dispatch).
+# Pure REST browse commands live only in RESOURCES and auto-register.
+SPECIAL_CMDS = frozenset(
     {
         "login",
         "whoami",
         "my-tasks",
-        "tasks",
+        "tasks",  # dual-backend + table output; also covers registry key "tasks"
         "task",
-        "users",
-        "user",
-        "projects",
-        "programs",
-        "executions",
-        "execution",
-        "departments",
         "comment",
     }
 )
+# Back-compat alias for imports.
+EXISTING_CMDS = SPECIAL_CMDS
 
 RESOURCES: dict[str, Resource] = {}
 
@@ -151,7 +147,7 @@ _add(
     )
 )
 
-# --- org / structure (incl. legacy CLI cmds in EXISTING_CMDS) ---
+# --- org / structure ---
 _add(
     Resource(
         key="users",
@@ -531,13 +527,13 @@ _add(
 
 
 def resources_for_cli() -> list[Resource]:
-    """Resources that introduce at least one new CLI command."""
+    """Resources that introduce at least one CLI command not in SPECIAL_CMDS."""
     out: list[Resource] = []
     for r in RESOURCES.values():
         cmds = [c for c in (r.list_cmd, r.detail_cmd) if c]
         if not cmds:
             continue
-        if all(c in EXISTING_CMDS for c in cmds):
+        if all(c in SPECIAL_CMDS for c in cmds):
             continue
         out.append(r)
     return out
@@ -546,9 +542,9 @@ def resources_for_cli() -> list[Resource]:
 def capability_names() -> list[str]:
     names: list[str] = []
     for r in resources_for_cli():
-        if r.list_cmd and r.list_cmd not in EXISTING_CMDS:
+        if r.list_cmd and r.list_cmd not in SPECIAL_CMDS:
             names.append(r.list_cmd)
-        if r.detail_cmd and r.detail_cmd not in EXISTING_CMDS:
+        if r.detail_cmd and r.detail_cmd not in SPECIAL_CMDS:
             names.append(r.detail_cmd)
     return names
 

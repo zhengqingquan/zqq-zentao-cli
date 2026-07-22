@@ -2,6 +2,6 @@
 # -*- coding: utf-8 -*-
 """Domain services."""
 
-from . import auth, browse, comments, resources, tasks
+from . import auth, comments, resources, tasks
 
-__all__ = ["auth", "browse", "comments", "resources", "tasks"]
+__all__ = ["auth", "comments", "resources", "tasks"]

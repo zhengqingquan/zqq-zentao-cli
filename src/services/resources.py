@@ -46,23 +46,6 @@ def get_by_cmd(client: ZenTaoClient, cmd: str, resource_id: str | int) -> dict[s
     return _as_rest(client).get_resource(res.key, resource_id)
 
 
-def list_projects_scoped(
-    client: ZenTaoClient,
-    *,
-    page: int = 1,
-    limit: int = 50,
-    program: str | None = None,
-    product: str | None = None,
-) -> dict[str, Any]:
-    """Existing projects command with optional --program / --product scopes."""
-    return _as_rest(client).list_resource(
-        "projects",
-        page=page,
-        limit=limit,
-        scopes={"program": program, "product": product},
-    )
-
-
 def scopes_from_args(args: Any, res: Resource) -> dict[str, str | int | None]:
     out: dict[str, str | int | None] = {}
     for name in res.scopes:
@@ -74,7 +57,6 @@ def query_from_args(args: Any, res: Resource) -> dict[str, str]:
     q: dict[str, str] = {}
     for name in res.query_params:
         val = getattr(args, name.replace("-", "_"), None)
-        # CLI dest may use underscore; also try name as-is via getattr with replace
         if val is None:
             val = getattr(args, name, None)
         if val is not None and val != "":

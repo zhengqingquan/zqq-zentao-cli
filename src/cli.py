@@ -22,13 +22,12 @@ from typing import Any
 
 from .factory import create_client
 from .rest.resources import (
-    EXISTING_CMDS,
+    SPECIAL_CMDS,
     resource_by_detail_cmd,
     resource_by_list_cmd,
     resources_for_cli,
 )
 from .services import auth as auth_svc
-from .services import browse as browse_svc
 from .services import comments as comment_svc
 from .services import resources as resource_svc
 from .services import tasks as task_svc
@@ -100,9 +99,10 @@ def _add_scope_flags(parser: argparse.ArgumentParser, scope_names: dict[str, str
 
 
 def _register_resource_parsers(sub: argparse._SubParsersAction[Any]) -> None:
+    """Register REST browse commands from the resource registry."""
     registered: set[str] = set()
     for res in resources_for_cli():
-        if res.list_cmd and res.list_cmd not in EXISTING_CMDS and res.list_cmd not in registered:
+        if res.list_cmd and res.list_cmd not in SPECIAL_CMDS and res.list_cmd not in registered:
             p = sub.add_parser(res.list_cmd, help=res.help)
             if res.path_param:
                 p.add_argument(res.path_param, help=f"{res.path_param} path parameter")
@@ -121,11 +121,12 @@ def _register_resource_parsers(sub: argparse._SubParsersAction[Any]) -> None:
 
         if (
             res.detail_cmd
-            and res.detail_cmd not in EXISTING_CMDS
+            and res.detail_cmd not in SPECIAL_CMDS
             and res.detail_cmd not in registered
         ):
             p = sub.add_parser(res.detail_cmd, help=res.help)
-            p.add_argument("id", help="Resource ID")
+            id_help = "Account" if res.detail_cmd == "user" else "Resource ID"
+            p.add_argument("id", help=id_help)
             registered.add(res.detail_cmd)
 
 
@@ -174,28 +175,6 @@ def build_parser() -> argparse.ArgumentParser:
     p_task = sub.add_parser("task", help="Task detail (JSON; REST returns full fields)")
     p_task.add_argument("id", help="Task ID")
 
-    p_users = sub.add_parser("users", help="User list (REST)")
-    _add_page_limit(p_users)
-
-    p_user = sub.add_parser("user", help="User detail (REST)")
-    p_user.add_argument("account", help="Account")
-
-    p_projects = sub.add_parser("projects", help="Project list (REST)")
-    _add_page_limit(p_projects)
-    p_projects.add_argument("--program", help="Scope by program ID")
-    p_projects.add_argument("--product", help="Scope by product ID")
-
-    p_programs = sub.add_parser("programs", help="Program list (REST)")
-    _add_page_limit(p_programs)
-
-    p_executions = sub.add_parser("executions", help="Execution list (REST)")
-    _add_page_limit(p_executions)
-
-    p_execution = sub.add_parser("execution", help="Execution detail (REST)")
-    p_execution.add_argument("id", help="Execution ID")
-
-    sub.add_parser("departments", help="Department list (REST)")
-
     p_c = sub.add_parser("comment", help="Comment list/add/edit (web only)")
     csub = p_c.add_subparsers(dest="c_cmd", required=True)
 
@@ -236,7 +215,7 @@ def _cli_insecure(args: argparse.Namespace) -> bool | None:
 def _dispatch_registry(client: Any, args: argparse.Namespace) -> bool:
     """Handle registry-driven list/detail commands. Returns True if handled."""
     list_res = resource_by_list_cmd(args.cmd)
-    if list_res is not None and args.cmd not in EXISTING_CMDS:
+    if list_res is not None and args.cmd not in SPECIAL_CMDS:
         path_param = None
         if list_res.path_param:
             path_param = getattr(args, list_res.path_param, None)
@@ -258,7 +237,7 @@ def _dispatch_registry(client: Any, args: argparse.Namespace) -> bool:
         return True
 
     detail_res = resource_by_detail_cmd(args.cmd)
-    if detail_res is not None and args.cmd not in EXISTING_CMDS:
+    if detail_res is not None and args.cmd not in SPECIAL_CMDS:
         print_json(resource_svc.get_by_cmd(client, args.cmd, args.id))
         return True
 
@@ -301,42 +280,6 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.cmd == "task":
         print_json(task_svc.get_task(client, args.id))
-        return 0
-
-    if args.cmd == "users":
-        print_json(browse_svc.list_users(client, page=args.page, limit=args.limit))
-        return 0
-
-    if args.cmd == "user":
-        print_json(browse_svc.get_user(client, args.account))
-        return 0
-
-    if args.cmd == "projects":
-        print_json(
-            resource_svc.list_projects_scoped(
-                client,
-                page=args.page,
-                limit=args.limit,
-                program=args.program,
-                product=args.product,
-            )
-        )
-        return 0
-
-    if args.cmd == "programs":
-        print_json(browse_svc.list_programs(client, page=args.page, limit=args.limit))
-        return 0
-
-    if args.cmd == "executions":
-        print_json(browse_svc.list_executions(client, page=args.page, limit=args.limit))
-        return 0
-
-    if args.cmd == "execution":
-        print_json(browse_svc.get_execution(client, args.id))
-        return 0
-
-    if args.cmd == "departments":
-        print_json(browse_svc.list_departments(client))
         return 0
 
     if args.cmd == "comment":
