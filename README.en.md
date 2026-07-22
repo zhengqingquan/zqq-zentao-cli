@@ -7,10 +7,13 @@
 ZenTao dual-backend CLI: **Web (PATHINFO + Cookie)** and **REST (Token)**.
 
 - Python ≥ 3.10, no third-party dependencies
-- Web supports comment read/write; REST fits structured task reads
-- Shares env vars and `~/.config/zentao/zentao.json` with the official [zentao-cli](https://github.com/easysoft/zentao-cli) (this tool also stores `webCookies`)
+- **Target surface**: **full ZenTao CLI** (query anyone/anything within ACL + CRUD/status actions + comments); see [docs/cli-surface.md](./docs/cli-surface.md)
+- `my-*` is only a shortcut for the logged-in user; use scoped lists + `--assignedTo` (etc.) for others (target API, rolling out)
+- Web handles comments and “My” pages where REST is awkward; REST fits structured browse/filter and writes
+- Shares env vars and `~/.config/zentao/zentao.json` with the official [zentao-cli](https://github.com/easysoft/zentao-cli) (this tool also stores `webCookies`); **this tool owns a full capability surface including CRUD**
 - Web PATHINFO API notes: [docs/zentao-apis.md](./docs/zentao-apis.md)
 - REST API v1 (from 22.3 source): [docs/zentao-rest-apis.md](./docs/zentao-rest-apis.md)
+- **CLI contract (phased)**: [docs/cli-surface.md](./docs/cli-surface.md)
 
 ## Install
 
@@ -160,7 +163,7 @@ zqq-zentao comment edit 1063694 "updated comment"
 | `ping` / `groups` / `configurations` / … | System read-only | **rest only** |
 | `comment list/add/edit` | Comment CRUD | **web only** |
 
-REST read-only modules are driven by [`src/rest/resources.py`](./src/rest/resources.py). Path map: [docs/zentao-rest-apis.md](./docs/zentao-rest-apis.md). Run `zqq-zentao -h` for the full command list.
+REST read-only modules are driven by [`src/rest/resources.py`](./src/rest/resources.py). Path map: [docs/zentao-rest-apis.md](./docs/zentao-rest-apis.md). Target CLI surface (including `my-* --type` and phased CRUD): [docs/cli-surface.md](./docs/cli-surface.md). Run `zqq-zentao -h` for currently implemented commands.
 
 `--backend` overrides `ZENTAO_BACKEND`. For `auto`: prefer rest when a token exists (env or config file), otherwise web; rest-only / web-only commands force that backend. `login` with `auto` performs both Web and REST credential exchange.
 
@@ -179,6 +182,7 @@ src/                 # installed as package zqq_zentao_cli; console: zqq-zentao
 docs/
   zentao-apis.md      # Web PATHINFO notes
   zentao-rest-apis.md # REST API v1 (from 22.3 source)
+  cli-surface.md      # CLI contract (my-* / phased CRUD)
 LICENSE              # MIT
 ```
 

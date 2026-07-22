@@ -7,10 +7,13 @@
 禅道（ZenTao）双通道命令行工具：支持 **Web（PATHINFO + Cookie）** 与 **REST（Token）**。
 
 - Python ≥ 3.10，无第三方依赖
-- Web 可读写备注；REST 适合任务只读等结构化接口
-- 与官方 [zentao-cli](https://github.com/easysoft/zentao-cli) 共用环境变量与 `~/.config/zentao/zentao.json`（本工具另存 `webCookies`）
+- **目标能力**：**全面命令行操作禅道**（权限内查任何人/任何对象 + CRUD/状态流转 + 备注）；契约见 [docs/cli-surface.md](./docs/cli-surface.md)
+- `my-*` 仅为当前用户快捷入口；查同事用范围列表 + `--assignedTo` 等过滤（目标面，逐步实现）
+- Web 承担备注与 REST 不便的「我的」列表；REST 适合结构化浏览/过滤与写接口
+- 与官方 [zentao-cli](https://github.com/easysoft/zentao-cli) 共用环境变量与 `~/.config/zentao/zentao.json`（本工具另存 `webCookies`）；**本工具自建完整能力面，含 CRUD**
 - Web PATHINFO 接口说明见 [docs/zentao-apis.md](./docs/zentao-apis.md)
 - REST API v1（22.3 源码整理）见 [docs/zentao-rest-apis.md](./docs/zentao-rest-apis.md)
+- **命令面契约（含分期）**见 [docs/cli-surface.md](./docs/cli-surface.md)
 
 ## 安装
 
@@ -160,7 +163,7 @@ zqq-zentao comment edit 1063694 "新备注"
 | `ping` / `groups` / `configurations` 等 | 系统只读 | **仅 rest** |
 | `comment list/add/edit` | 备注增改查 | **仅 web** |
 
-REST 只读模块由 [`src/rest/resources.py`](./src/rest/resources.py) 注册表驱动；完整路径对照见 [docs/zentao-rest-apis.md](./docs/zentao-rest-apis.md)。`zqq-zentao -h` 可查看全部子命令。
+REST 只读模块由 [`src/rest/resources.py`](./src/rest/resources.py) 注册表驱动；完整路径对照见 [docs/zentao-rest-apis.md](./docs/zentao-rest-apis.md)。目标命令面（含 `my-* --type`、CRUD 分期）见 [docs/cli-surface.md](./docs/cli-surface.md)。`zqq-zentao -h` 可查看当前已实现子命令。
 
 `--backend` 可覆盖 `ZENTAO_BACKEND`。`auto`：有 Token（环境变量或配置文件）偏向 rest，否则 web；仅 rest / 仅 web 的命令会强制对应通道。`login` 在 `auto` 下会同时完成 Web 与 REST 换票。
 
@@ -179,6 +182,7 @@ src/                 # 安装后映射为包 zqq_zentao_cli，入口命令：zqq
 docs/
   zentao-apis.md      # Web PATHINFO 接口说明
   zentao-rest-apis.md # REST API v1（22.3 源码整理）
+  cli-surface.md      # 命令面契约（my-* / CRUD 分期）
 LICENSE              # MIT
 ```
 
