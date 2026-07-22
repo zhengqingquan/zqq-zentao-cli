@@ -24,11 +24,53 @@ def _extract_named_list(data: Any, *keys: str) -> list[dict[str, Any]]:
             val = data.get(key)
             if isinstance(val, list):
                 return [x for x in val if isinstance(x, dict)]
+        nested = data.get("data")
+        if isinstance(nested, dict):
+            for key in keys:
+                val = nested.get(key)
+                if isinstance(val, list):
+                    return [x for x in val if isinstance(x, dict)]
         for key in ("data", "list"):
             val = data.get(key)
             if isinstance(val, list):
                 return [x for x in val if isinstance(x, dict)]
     return []
+
+
+def _extract_total(data: Any, rows_len: int) -> int:
+    if not isinstance(data, dict):
+        return rows_len
+    for key in ("total", "recTotal"):
+        if data.get(key) is not None:
+            try:
+                return int(data[key])
+            except (TypeError, ValueError):
+                pass
+    nested = data.get("data")
+    if isinstance(nested, dict):
+        pager = nested.get("pager")
+        if isinstance(pager, dict):
+            for key in ("recTotal", "total"):
+                if pager.get(key) is not None:
+                    try:
+                        return int(pager[key])
+                    except (TypeError, ValueError):
+                        pass
+        for key in ("total", "recTotal"):
+            if nested.get(key) is not None:
+                try:
+                    return int(nested[key])
+                except (TypeError, ValueError):
+                    pass
+    pager = data.get("pager")
+    if isinstance(pager, dict):
+        for key in ("recTotal", "total"):
+            if pager.get(key) is not None:
+                try:
+                    return int(pager[key])
+                except (TypeError, ValueError):
+                    pass
+    return rows_len
 
 
 def _unwrap_entity(data: Any, *keys: str) -> dict[str, Any]:
@@ -109,8 +151,33 @@ class RestClient:
     def my_bugs(self) -> list[dict[str, Any]]:
         raise SystemExit("my-bugs requires --backend web")
 
-    def list_tasks(self, *, page: int = 1, limit: int = 100) -> dict[str, Any]:
-        """Paginated my-tasks list (client-side page after full fetch workaround)."""
+    def list_tasks(
+        self,
+        *,
+        page: int = 1,
+        limit: int = 100,
+        assigned_to: str | None = None,
+        opened_by: str | None = None,
+    ) -> dict[str, Any]:
+        """Task list: my-tasks by default, or search/filter by account."""
+        at = (assigned_to or "").strip() or None
+        ob = (opened_by or "").strip() or None
+        if ob and not at:
+            raise SystemExit(
+                "tasks --openedBy without --execution requires --assignedTo "
+                "(ZenTao GET /tasks?search=1 has no openedBy). "
+                "Use: tasks -e <id> --openedBy <account>"
+            )
+        if at:
+            out = tasks_api.search_tasks(
+                self.list_resource,
+                assigned_to=at,
+                opened_by=ob,
+                page=page,
+                limit=limit,
+            )
+            out["backend"] = self.backend
+            return out
         out = tasks_api.list_my_tasks(self.list_resource, page=page, limit=limit)
         out["backend"] = self.backend
         return out
@@ -236,7 +303,7 @@ class RestClient:
             }
             if res.paginated:
                 out["page"] = meta.get("page", page)
-                out["total"] = meta.get("total", len(rows))
+                out["total"] = _extract_total(data, len(rows))
                 out["limit"] = meta.get("limit", limit)
             elif isinstance(data, dict):
                 for k, v in data.items():

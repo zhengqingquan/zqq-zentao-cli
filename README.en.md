@@ -118,7 +118,10 @@ zqq-zentao whoami
 zqq-zentao my-tasks
 zqq-zentao my-bugs
 zqq-zentao tasks
-zqq-zentao tasks --execution 1664
+zqq-zentao tasks --assignedTo alice
+zqq-zentao tasks --execution 1664 --openedBy bob
+zqq-zentao bugs --product 12 --assignedTo alice
+zqq-zentao stories --project 5 --openedBy bob
 zqq-zentao task 39980
 zqq-zentao projects --limit 5
 zqq-zentao projects --program 1
@@ -147,8 +150,8 @@ zqq-zentao comment edit 1063694 "updated comment"
 | `whoami` | Current account and server | web / rest |
 | `my-tasks` | Tasks assigned to me (REST filters `/tasks` by assignee) | web / rest |
 | `my-bugs` | Bugs assigned to me (Web: `/my-work-bug-assignedTo.html`) | **web only** |
-| `tasks` | REST task list (`--page` / `--limit`) | **rest only** |
-| `tasks -e <id>` | Tasks under an execution | web / rest |
+| `tasks` | REST task list; optional `--assignedTo` (others) | **rest only** |
+| `tasks -e <id>` | Tasks under an execution; `--assignedTo` / `--openedBy` | web / rest |
 | `task <id>` | Task detail (REST returns full fields) | web / rest |
 | `users` / `user <account>` | User list / detail | **rest only** |
 | `projects` | Project list (optional `--program` / `--product`) | **rest only** |
@@ -157,8 +160,8 @@ zqq-zentao comment edit 1063694 "updated comment"
 | `products` / `product <id>` | Product list / detail (list may use `--program`) | **rest only** |
 | `executions` / `execution <id>` | Execution list / detail | **rest only** |
 | `departments` / `department <id>` | Department list / detail | **rest only** |
-| `stories` / `story` | Story list / detail (list needs `--product`/`--project`/`--execution`) | **rest only** |
-| `bugs` / `bug` | Bug list / detail (same scopes) | **rest only** |
+| `stories` / `story` | Story list / detail (needs scope; `--assignedTo` / `--openedBy`) | **rest only** |
+| `bugs` / `bug` | Bug list / detail (needs scope; `--assignedTo` / `--openedBy`) | **rest only** |
 | `productplans` / `releases` / `builds` / … | Read-only plans, releases, builds, test, feedback, tickets, todos, issues, risks, meetings, docs | **rest only** |
 | `ping` / `groups` / `configurations` / … | System read-only | **rest only** |
 | `comment list/add/edit` | Comment CRUD | **web only** |

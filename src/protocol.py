@@ -22,7 +22,14 @@ class ZenTaoClient(Protocol):
 
     def my_bugs(self) -> list[dict[str, Any]]: ...
 
-    def list_tasks(self, *, page: int = 1, limit: int = 100) -> dict[str, Any]: ...
+    def list_tasks(
+        self,
+        *,
+        page: int = 1,
+        limit: int = 100,
+        assigned_to: str | None = None,
+        opened_by: str | None = None,
+    ) -> dict[str, Any]: ...
 
     def execution_tasks(self, execution_id: str | int) -> list[dict[str, Any]]: ...
 

@@ -17,6 +17,7 @@ class Resource:
                 (e.g. tabs / options).
     query_params: optional/extra GET query flags exposed on the list command.
     required_query: subset of query_params that must be set.
+    user_filters: CLI flags for account filters (client-side; e.g. assignedTo).
     """
 
     key: str
@@ -33,6 +34,7 @@ class Resource:
     path_param: str | None = None
     query_params: tuple[str, ...] = ()
     required_query: tuple[str, ...] = ()
+    user_filters: tuple[str, ...] = ()
 
 
 # Hand-written CLI commands (custom parser and/or non-registry dispatch).
@@ -270,6 +272,7 @@ _add(
             "execution": "/executions/{id}/stories",
         },
         require_scope=True,
+        user_filters=("assignedTo", "openedBy"),
     )
 )
 _add(
@@ -298,6 +301,7 @@ _add(
             "execution": "/executions/{id}/bugs",
         },
         require_scope=True,
+        user_filters=("assignedTo", "openedBy"),
     )
 )
 

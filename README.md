@@ -118,7 +118,10 @@ zqq-zentao whoami
 zqq-zentao my-tasks
 zqq-zentao my-bugs
 zqq-zentao tasks
-zqq-zentao tasks --execution 1664
+zqq-zentao tasks --assignedTo alice
+zqq-zentao tasks --execution 1664 --openedBy bob
+zqq-zentao bugs --product 12 --assignedTo alice
+zqq-zentao stories --project 5 --openedBy bob
 zqq-zentao task 39980
 zqq-zentao projects --limit 5
 zqq-zentao projects --program 1
@@ -147,8 +150,8 @@ zqq-zentao comment edit 1063694 "新备注"
 | `whoami` | 当前账号与服务器 | web / rest |
 | `my-tasks` | 指派给我的任务（REST 用 `/tasks` 过滤指派人） | web / rest |
 | `my-bugs` | 指派给我的 Bug（Web：`/my-work-bug-assignedTo.html`） | **仅 web** |
-| `tasks` | REST 任务列表（`--page` / `--limit`） | **仅 rest** |
-| `tasks -e <id>` | 某执行下的任务列表 | web / rest |
+| `tasks` | REST 任务列表；可 `--assignedTo`（查别人） | **仅 rest** |
+| `tasks -e <id>` | 某执行下的任务；可 `--assignedTo` / `--openedBy` | web / rest |
 | `task <id>` | 任务详情（REST 返回完整字段） | web / rest |
 | `users` / `user <account>` | 用户列表 / 详情 | **仅 rest** |
 | `projects` | 项目列表（可选 `--program` / `--product`） | **仅 rest** |
@@ -157,8 +160,8 @@ zqq-zentao comment edit 1063694 "新备注"
 | `products` / `product <id>` | 产品列表 / 详情（列表可选 `--program`） | **仅 rest** |
 | `executions` / `execution <id>` | 执行列表 / 详情 | **仅 rest** |
 | `departments` / `department <id>` | 部门列表 / 详情 | **仅 rest** |
-| `stories` / `story` | 需求列表 / 详情（列表需 `--product`/`--project`/`--execution`） | **仅 rest** |
-| `bugs` / `bug` | Bug 列表 / 详情（同上 scopes） | **仅 rest** |
+| `stories` / `story` | 需求列表 / 详情（需 scope；可 `--assignedTo` / `--openedBy`） | **仅 rest** |
+| `bugs` / `bug` | Bug 列表 / 详情（需 scope；可 `--assignedTo` / `--openedBy`） | **仅 rest** |
 | `productplans` / `releases` / `builds` 等 | 计划/发布/版本/测试/反馈/工单/待办/问题/风险/会议/文档等只读 | **仅 rest** |
 | `ping` / `groups` / `configurations` 等 | 系统只读 | **仅 rest** |
 | `comment list/add/edit` | 备注增改查 | **仅 web** |

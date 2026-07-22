@@ -122,3 +122,68 @@ def fetch_execution_tasks(
             f"Failed to parse REST execution task list. raw={raw_last!r}"[:200]
         )
     return [summarize_task(x) for x in all_rows]
+
+
+def fetch_search_tasks(
+    list_resource: ListResourceFn, *, assigned_to: str | None = None
+) -> list[dict[str, Any]]:
+    """All tasks from GET /tasks?search=1 (optional assignedTo); canonical rows."""
+    from ..list_filter import filter_rows
+
+    query: dict[str, str] = {"search": "1"}
+    if assigned_to and assigned_to.strip():
+        query["assignedTo"] = assigned_to.strip()
+
+    all_rows: list[dict[str, Any]] = []
+    seen: set[Any] = set()
+    cur = 1
+    reported_total = 0
+    while cur <= 100:
+        data = list_resource(
+            "tasks",
+            page=cur,
+            limit=200,
+            query={**query, "page": str(cur), "limit": "200"},
+        )
+        rows = [r for r in (data.get("tasks") or []) if isinstance(r, dict)]
+        reported_total = int(data.get("total") or reported_total or len(rows))
+        if not rows:
+            break
+        for row in rows:
+            tid = row.get("id")
+            if tid in seen:
+                continue
+            seen.add(tid)
+            all_rows.append(row)
+        if reported_total and len(all_rows) >= reported_total:
+            break
+        if len(rows) < 200:
+            break
+        cur += 1
+
+    if assigned_to and assigned_to.strip():
+        all_rows = filter_rows(all_rows, assigned_to=assigned_to.strip())
+    return [summarize_task(x) for x in all_rows]
+
+
+def search_tasks(
+    list_resource: ListResourceFn,
+    *,
+    assigned_to: str | None = None,
+    opened_by: str | None = None,
+    page: int = 1,
+    limit: int = 100,
+) -> dict[str, Any]:
+    """Paginated search list (assignedTo via API; openedBy client-side)."""
+    from ..list_filter import filter_rows, slice_rows
+
+    rows = fetch_search_tasks(list_resource, assigned_to=assigned_to)
+    if opened_by and opened_by.strip():
+        rows = filter_rows(rows, opened_by=opened_by.strip())
+    chunk, total = slice_rows(rows, page=page, limit=limit)
+    return {
+        "page": max(1, int(page)),
+        "total": total,
+        "limit": max(1, int(limit)),
+        "tasks": chunk,
+    }

@@ -77,16 +77,20 @@ zqq-zentao comment list|add|edit …
 
 范围列表逐步支持与官方类似的过滤（名称以实机/REST 为准）：
 
-| 参数 | 含义 |
-|------|------|
-| `--assignedTo <account>` | 指派给某人 |
-| `--openedBy <account>` | 由某人创建 |
-| `--finishedBy` / `--resolvedBy` / `--closedBy` | 完成/解决/关闭人 |
-| `--status` / `--pri` / `--severity` | 状态与优先级等 |
-| `--search` / `--filter` | 关键词或表达式过滤（可对齐官方） |
-| `--pick` | 摘取字段 |
+| 参数 | 含义 | 状态 |
+|------|------|------|
+| `--assignedTo <account>` | 指派给某人 | ✅ `tasks` / `bugs` / `stories` |
+| `--openedBy <account>` | 由某人创建 | ✅ `bugs` / `stories`；`tasks` 需配合 `-e` 或同时 `--assignedTo` |
+| `--finishedBy` / `--resolvedBy` / `--closedBy` | 完成/解决/关闭人 | ⏳ |
+| `--status` / `--pri` / `--severity` | 状态与优先级等 | ⏳ |
+| `--search` / `--filter` | 关键词或表达式过滤（可对齐官方） | ⏳ |
+| `--pick` | 摘取字段 | ⏳ |
 
-当前多数列表仅有 scope + 分页；过滤为 **P0/P1 补齐项**。
+说明：
+
+- `tasks --assignedTo`：REST `GET /tasks?search=1&assignedTo=…`，再客户端校对  
+- `bugs` / `stories`：在 scope 下列全量后客户端过滤（服务端 query 不可靠）  
+- `tasks --openedBy` 单独使用时请加 `-e <executionId>`（全局 search 无 openedBy 字段）
 
 ---
 
@@ -231,10 +235,10 @@ zqq-zentao comment list|add|edit …
 
 ### P0 — 契约、「我的」与「查别人」过滤
 
-1. 本文档落地；README / skill 指向本文并写明「全面 CLI 操作禅道（含他人数据）」
-2. `my-*` 扩展：`stories` `todos` `testcases` `testtasks` `feedbacks` `tickets` + 各命令 `--type`
-3. `my-tasks` / `my-bugs` 支持 `--type`
-4. 范围列表补齐用户向过滤：至少 `tasks` / `bugs` / `stories` 支持 `--assignedTo` / `--openedBy`（REST search 或客户端过滤，以可用为准）
+1. ✅ 本文档落地；README / skill 指向本文  
+2. `my-*` 扩展：`stories` `todos` `testcases` `testtasks` `feedbacks` `tickets` + 各命令 `--type`  
+3. `my-tasks` / `my-bugs` 支持 `--type`  
+4. ✅ 范围列表：`tasks` / `bugs` / `stories` 支持 `--assignedTo` / `--openedBy`  
 
 ### P1 — 核心写路径
 

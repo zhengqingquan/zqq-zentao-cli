@@ -115,6 +115,17 @@ def _add_scope_flags(parser: argparse.ArgumentParser, scope_names: dict[str, str
         parser.add_argument(f"--{name}", help=help_text)
 
 
+def _add_user_filter_flags(
+    parser: argparse.ArgumentParser, filter_names: tuple[str, ...]
+) -> None:
+    helps = {
+        "assignedTo": "Filter by assignee account",
+        "openedBy": "Filter by opener account",
+    }
+    for name in filter_names:
+        parser.add_argument(f"--{name}", default=None, help=helps.get(name, f"Filter by {name}"))
+
+
 def _register_resource_parsers(sub: argparse._SubParsersAction[Any]) -> None:
     """Register REST browse commands from the resource registry."""
     registered: set[str] = set()
@@ -127,6 +138,8 @@ def _register_resource_parsers(sub: argparse._SubParsersAction[Any]) -> None:
                 _add_page_limit(p)
             if res.scopes:
                 _add_scope_flags(p, res.scopes)
+            if res.user_filters:
+                _add_user_filter_flags(p, res.user_filters)
             for qname in res.query_params:
                 req = qname in res.required_query
                 p.add_argument(
@@ -223,6 +236,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="Task list: REST /tasks, or --execution for one execution (web/rest)",
     )
     p_tasks.add_argument("--execution", "-e", help="Execution ID")
+    _add_user_filter_flags(p_tasks, ("assignedTo", "openedBy"))
     _add_page_limit(p_tasks, limit=100)
 
     p_task = sub.add_parser("task", help="Task detail (JSON; REST returns full fields)")
@@ -274,6 +288,11 @@ def _dispatch_registry(client: Any, args: argparse.Namespace) -> bool:
             path_param = getattr(args, list_res.path_param, None)
         scopes = resource_svc.scopes_from_args(args, list_res) if list_res.scopes else None
         query = resource_svc.query_from_args(args, list_res) if list_res.query_params else None
+        filters = (
+            resource_svc.user_filters_from_args(args, list_res)
+            if list_res.user_filters
+            else {"assigned_to": None, "opened_by": None}
+        )
         page = getattr(args, "page", 1)
         limit = getattr(args, "limit", 50)
         emit(
@@ -285,6 +304,8 @@ def _dispatch_registry(client: Any, args: argparse.Namespace) -> bool:
                 scopes=scopes,
                 path_param=path_param,
                 query=query,
+                assigned_to=filters.get("assigned_to"),
+                opened_by=filters.get("opened_by"),
             ),
             is_list=True,
         )
@@ -347,14 +368,32 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.cmd == "tasks":
+        assigned_to = getattr(args, "assignedTo", None)
+        opened_by = getattr(args, "openedBy", None)
         if args.execution:
             emit(
-                _normalize_task_rows(task_svc.execution_tasks(client, args.execution)),
+                _normalize_task_rows(
+                    task_svc.execution_tasks(
+                        client,
+                        args.execution,
+                        assigned_to=assigned_to,
+                        opened_by=opened_by,
+                    )
+                ),
                 is_list=True,
                 fields=_TASK_FIELDS,
             )
         else:
-            emit(task_svc.list_tasks(client, page=args.page, limit=args.limit), is_list=True)
+            emit(
+                task_svc.list_tasks(
+                    client,
+                    page=args.page,
+                    limit=args.limit,
+                    assigned_to=assigned_to,
+                    opened_by=opened_by,
+                ),
+                is_list=True,
+            )
         return 0
 
     if args.cmd == "task":

@@ -137,7 +137,14 @@ class WebClient:
 
         return self._with_auth_retry(_run)
 
-    def list_tasks(self, *, page: int = 1, limit: int = 100) -> dict[str, Any]:
+    def list_tasks(
+        self,
+        *,
+        page: int = 1,
+        limit: int = 100,
+        assigned_to: str | None = None,
+        opened_by: str | None = None,
+    ) -> dict[str, Any]:
         raise SystemExit("tasks without --execution requires --backend rest")
 
     def list_users(self, *, page: int = 1, limit: int = 50) -> dict[str, Any]:
