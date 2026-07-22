@@ -144,6 +144,9 @@ zqq-zentao stories --product 12
 zqq-zentao story 100
 zqq-zentao bugs --product 12
 zqq-zentao bug 200
+zqq-zentao bug resolve 200 --resolution fixed --yes
+zqq-zentao task start 39980 --yes
+zqq-zentao task create --execution 1664 --name "demo" --type devel --assignedTo alice --estStarted 2026-01-01 --deadline 2026-01-02 --yes
 zqq-zentao ping
 zqq-zentao departments
 zqq-zentao comment list task 39973
@@ -159,7 +162,8 @@ zqq-zentao comment edit 1063694 "新备注"
 | `my-bugs` / `my-stories` / `my-todos` / `my-testcases` / `my-testtasks` / `my-feedbacks` / `my-tickets` | 我的地盘列表（Web；可 `--type`） | **仅 web** |
 | `tasks` | REST 任务列表；可 `--assignedTo`（查别人） | **仅 rest** |
 | `tasks -e <id>` | 某执行下的任务；可 `--assignedTo` / `--openedBy` | web / rest |
-| `task <id>` | 任务详情（REST 返回完整字段） | web / rest |
+| `task <id>` / `task <action> <id>` | 任务详情；写/动作（create/update/delete/start/finish/close/activate/assign，REST） | 详情 web/rest；写 **rest** |
+| `bug <id>` / `bug <action> <id>` | Bug 详情；写/动作（create/update/delete/confirm/resolve/close/activate/assign，REST） | **rest** |
 | `users` / `user <account>` | 用户列表（可 `--search`）/ 详情 | **仅 rest** |
 | `projects` | 项目列表（可选 `--program` / `--product`） | **仅 rest** |
 | `project <id>` | 项目详情 | **仅 rest** |

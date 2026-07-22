@@ -144,6 +144,9 @@ zqq-zentao stories --product 12
 zqq-zentao story 100
 zqq-zentao bugs --product 12
 zqq-zentao bug 200
+zqq-zentao bug resolve 200 --resolution fixed --yes
+zqq-zentao task start 39980 --yes
+zqq-zentao task create --execution 1664 --name "demo" --type devel --assignedTo alice --estStarted 2026-01-01 --deadline 2026-01-02 --yes
 zqq-zentao ping
 zqq-zentao departments
 zqq-zentao comment list task 39973
@@ -159,7 +162,8 @@ zqq-zentao comment edit 1063694 "updated comment"
 | `my-bugs` / `my-stories` / `my-todos` / `my-testcases` / `my-testtasks` / `my-feedbacks` / `my-tickets` | My workbench lists (Web; optional `--type`) | **web only** |
 | `tasks` | REST task list; optional `--assignedTo` (others) | **rest only** |
 | `tasks -e <id>` | Tasks under an execution; `--assignedTo` / `--openedBy` | web / rest |
-| `task <id>` | Task detail (REST returns full fields) | web / rest |
+| `task <id>` / `task <action> <id>` | Task detail; writes/actions (REST) | detail web/rest; write **rest** |
+| `bug <id>` / `bug <action> <id>` | Bug detail; writes/actions (REST) | **rest** |
 | `users` / `user <account>` | User list (optional `--search`) / detail | **rest only** |
 | `projects` | Project list (optional `--program` / `--product`) | **rest only** |
 | `project <id>` | Project detail | **rest only** |

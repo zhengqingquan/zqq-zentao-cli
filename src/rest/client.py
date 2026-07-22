@@ -350,3 +350,94 @@ class RestClient:
                     out[key] = data[key]
         out["backend"] = self.backend
         return out
+
+    def _mutate(
+        self,
+        method: str,
+        path: str,
+        *,
+        body: dict[str, Any] | None = None,
+        label: str = "write",
+    ) -> Any:
+        from .writes import check_write_response
+
+        self._ensure_login()
+        r = self._sess.request(method, path, json_body=body if body is not None else {})
+        data = check_write_response(r, label=label)
+        if isinstance(data, dict):
+            out = dict(data)
+            out["backend"] = self.backend
+            out["http"] = r["status"]
+            return out
+        return {"result": data, "backend": self.backend, "http": r["status"]}
+
+    def create_bug(self, product_id: str | int, body: dict[str, Any]) -> dict[str, Any]:
+        from .writes import bug_create_path
+
+        return self._mutate(
+            "POST", bug_create_path(product_id), body=body, label="bug create"
+        )
+
+    def update_bug(self, bug_id: str | int, body: dict[str, Any]) -> dict[str, Any]:
+        from .writes import bug_item_path
+
+        return self._mutate(
+            "PUT", bug_item_path(bug_id), body=body, label=f"bug update {bug_id}"
+        )
+
+    def delete_bug(self, bug_id: str | int) -> dict[str, Any]:
+        from .writes import bug_item_path
+
+        return self._mutate(
+            "DELETE", bug_item_path(bug_id), body={}, label=f"bug delete {bug_id}"
+        )
+
+    def bug_action(
+        self, bug_id: str | int, action: str, body: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
+        from .writes import bug_action_path
+
+        path_action = {"activate": "active"}.get(action, action)
+        return self._mutate(
+            "POST",
+            bug_action_path(bug_id, path_action),
+            body=body or {},
+            label=f"bug {action} {bug_id}",
+        )
+
+    def create_task(self, execution_id: str | int, body: dict[str, Any]) -> dict[str, Any]:
+        from .writes import task_create_path
+
+        return self._mutate(
+            "POST",
+            task_create_path(execution_id),
+            body=body,
+            label="task create",
+        )
+
+    def update_task(self, task_id: str | int, body: dict[str, Any]) -> dict[str, Any]:
+        from .writes import task_item_path
+
+        return self._mutate(
+            "PUT", task_item_path(task_id), body=body, label=f"task update {task_id}"
+        )
+
+    def delete_task(self, task_id: str | int) -> dict[str, Any]:
+        from .writes import task_item_path
+
+        return self._mutate(
+            "DELETE", task_item_path(task_id), body={}, label=f"task delete {task_id}"
+        )
+
+    def task_action(
+        self, task_id: str | int, action: str, body: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
+        from .writes import task_action_path
+
+        path_action = {"assign": "assignto", "activate": "active"}.get(action, action)
+        return self._mutate(
+            "POST",
+            task_action_path(task_id, path_action),
+            body=body or {},
+            label=f"task {action} {task_id}",
+        )

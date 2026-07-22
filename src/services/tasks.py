@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from ..confirm_util import confirm_or_exit
 from ..list_filter import filter_rows
 from ..protocol import ZenTaoClient
 
@@ -51,3 +52,44 @@ def execution_tasks(
 
 def get_task(client: ZenTaoClient, task_id: str | int) -> dict[str, Any]:
     return client.get_task(task_id)
+
+
+def create_task(
+    client: ZenTaoClient,
+    execution_id: str | int,
+    body: dict[str, Any],
+    *,
+    yes: bool = False,
+) -> dict[str, Any]:
+    confirm_or_exit(f"Create task under execution {execution_id}?", yes=yes)
+    return client.create_task(execution_id, body)
+
+
+def update_task(
+    client: ZenTaoClient,
+    task_id: str | int,
+    body: dict[str, Any],
+    *,
+    yes: bool = False,
+) -> dict[str, Any]:
+    confirm_or_exit(f"Update task {task_id}?", yes=yes)
+    return client.update_task(task_id, body)
+
+
+def delete_task(
+    client: ZenTaoClient, task_id: str | int, *, yes: bool = False
+) -> dict[str, Any]:
+    confirm_or_exit(f"Delete task {task_id}? This cannot be undone easily.", yes=yes)
+    return client.delete_task(task_id)
+
+
+def task_action(
+    client: ZenTaoClient,
+    action: str,
+    task_id: str | int,
+    body: dict[str, Any] | None = None,
+    *,
+    yes: bool = False,
+) -> dict[str, Any]:
+    confirm_or_exit(f"Task {action} id={task_id}?", yes=yes)
+    return client.task_action(task_id, action, body or {})

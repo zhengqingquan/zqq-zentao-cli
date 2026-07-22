@@ -32,13 +32,22 @@ from .rest.resources import (
     resources_for_cli,
 )
 from .services import auth as auth_svc
+from .services import bugs as bug_svc
 from .services import comments as comment_svc
 from .services import my_pages as my_page_svc
 from .services import resources as resource_svc
 from .services import tasks as task_svc
+from .payload import merge_payload
 from .user_resolve import resolve_optional
 from .web.my_pages import MY_PAGES, my_page_by_cmd, resolve_browse, uses_rest_default
 from .web.parse import strip_tags
+
+_BUG_OPS = frozenset(
+    {"create", "update", "delete", "confirm", "resolve", "close", "activate", "assign"}
+)
+_TASK_OPS = frozenset(
+    {"create", "update", "delete", "start", "finish", "close", "activate", "assign"}
+)
 
 _SCOPE_FLAGS = (
     ("product", "Scope by product ID"),
@@ -187,6 +196,65 @@ def _add_my_page_flags(parser: argparse.ArgumentParser, page_cmd: str) -> None:
         )
 
 
+def _add_write_flags(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--yes",
+        action="store_true",
+        help="Skip interactive confirmation for write operations",
+    )
+    parser.add_argument(
+        "--data",
+        default=None,
+        help='JSON object body, e.g. \'{"title":"x","pri":1}\'',
+    )
+    parser.add_argument("--comment", default=None, help="Comment / remark field")
+    parser.add_argument("--assignedTo", default=None, help="Assignee account")
+    parser.add_argument("--title", default=None)
+    parser.add_argument("--name", default=None)
+    parser.add_argument("--pri", default=None)
+    parser.add_argument("--severity", default=None)
+    parser.add_argument("--type", dest="obj_type", default=None, help="Object type field")
+    parser.add_argument("--resolution", default=None, help="Bug resolution")
+    parser.add_argument("--product", default=None, help="Product id (bug create)")
+    parser.add_argument("--execution", "-e", default=None, help="Execution id (task create)")
+    parser.add_argument("--openedBuild", default=None, help="Bug openedBuild (default trunk)")
+    parser.add_argument("--estStarted", default=None)
+    parser.add_argument("--deadline", default=None)
+    parser.add_argument("--consumed", default=None)
+    parser.add_argument("--left", default=None)
+    parser.add_argument("--currentConsumed", default=None)
+    parser.add_argument("--finishedDate", default=None)
+    parser.add_argument("--realStarted", default=None)
+
+
+def _is_id_token(token: str | None) -> bool:
+    return bool(token) and str(token).isdigit()
+
+
+def _body_from_args(args: argparse.Namespace, *, extra: dict | None = None) -> dict:
+    fields = {
+        "comment": getattr(args, "comment", None),
+        "assignedTo": getattr(args, "assignedTo", None),
+        "title": getattr(args, "title", None),
+        "name": getattr(args, "name", None),
+        "pri": getattr(args, "pri", None),
+        "severity": getattr(args, "severity", None),
+        "type": getattr(args, "obj_type", None),
+        "resolution": getattr(args, "resolution", None),
+        "openedBuild": getattr(args, "openedBuild", None),
+        "estStarted": getattr(args, "estStarted", None),
+        "deadline": getattr(args, "deadline", None),
+        "consumed": getattr(args, "consumed", None),
+        "left": getattr(args, "left", None),
+        "currentConsumed": getattr(args, "currentConsumed", None),
+        "finishedDate": getattr(args, "finishedDate", None),
+        "realStarted": getattr(args, "realStarted", None),
+    }
+    if extra:
+        fields.update(extra)
+    return merge_payload(data_json=getattr(args, "data", None), fields=fields)
+
+
 def _register_my_page_parsers(sub: argparse._SubParsersAction[Any]) -> None:
     for page in MY_PAGES.values():
         p = sub.add_parser(page.cmd, help=page.help)
@@ -317,8 +385,27 @@ def build_parser() -> argparse.ArgumentParser:
     _add_status_flag(p_tasks)
     _add_page_limit(p_tasks, limit=100)
 
-    p_task = sub.add_parser("task", help="Task detail (JSON; REST returns full fields)")
-    p_task.add_argument("id", help="Task ID")
+    p_task = sub.add_parser(
+        "task",
+        help="Task detail or write: task <id> | task create|update|delete|start|…",
+    )
+    p_task.add_argument(
+        "op",
+        help="Task id (detail) or action: create|update|delete|start|finish|close|activate|assign",
+    )
+    p_task.add_argument("id", nargs="?", help="Task id for write/actions")
+    _add_write_flags(p_task)
+
+    p_bug = sub.add_parser(
+        "bug",
+        help="Bug detail or write: bug <id> | bug create|update|delete|resolve|…",
+    )
+    p_bug.add_argument(
+        "op",
+        help="Bug id (detail) or action: create|update|delete|confirm|resolve|close|activate|assign",
+    )
+    p_bug.add_argument("id", nargs="?", help="Bug id for write/actions")
+    _add_write_flags(p_bug)
 
     p_c = sub.add_parser("comment", help="Comment list/add/edit (web only)")
     csub = p_c.add_subparsers(dest="c_cmd", required=True)
@@ -346,6 +433,12 @@ def _capability(args: argparse.Namespace) -> str:
         return f"comment.{args.c_cmd}"
     if args.cmd == "tasks" and not args.execution:
         return "tasks.list"
+    if args.cmd == "task":
+        if _is_id_token(args.op) and args.id is None:
+            return "task"
+        return "task.write"
+    if args.cmd == "bug":
+        return "bug" if (_is_id_token(args.op) and args.id is None) else "bug.write"
     page = my_page_by_cmd(args.cmd)
     if page is not None:
         scope, browse_type = resolve_browse(
@@ -527,7 +620,83 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.cmd == "task":
-        emit(task_svc.get_task(client, args.id), is_list=False)
+        yes = bool(getattr(args, "yes", False))
+        if _is_id_token(args.op) and args.id is None:
+            emit(task_svc.get_task(client, args.op), is_list=False)
+            return 0
+        op = str(args.op).strip().lower()
+        if op not in _TASK_OPS:
+            raise SystemExit(
+                f"Unknown task op {args.op!r}; use task <id> or "
+                f"create|update|delete|start|finish|close|activate|assign"
+            )
+        if op == "create":
+            execution = args.execution
+            if not execution:
+                raise SystemExit("task create requires --execution <id>")
+            body = _body_from_args(args)
+            emit(task_svc.create_task(client, execution, body, yes=yes), is_list=False)
+            return 0
+        tid = args.id
+        if not tid:
+            raise SystemExit(f"task {op} requires <id>")
+        if op == "update":
+            emit(
+                task_svc.update_task(client, tid, _body_from_args(args), yes=yes),
+                is_list=False,
+            )
+            return 0
+        if op == "delete":
+            emit(task_svc.delete_task(client, tid, yes=yes), is_list=False)
+            return 0
+        emit(
+            task_svc.task_action(client, op, tid, _body_from_args(args), yes=yes),
+            is_list=False,
+        )
+        return 0
+
+    if args.cmd == "bug":
+        yes = bool(getattr(args, "yes", False))
+        if _is_id_token(args.op) and args.id is None:
+            emit(resource_svc.get_by_cmd(client, "bug", args.op), is_list=False)
+            return 0
+        op = str(args.op).strip().lower()
+        if op not in _BUG_OPS:
+            raise SystemExit(
+                f"Unknown bug op {args.op!r}; use bug <id> or "
+                f"create|update|delete|confirm|resolve|close|activate|assign"
+            )
+        if op == "create":
+            product = args.product
+            if not product:
+                raise SystemExit("bug create requires --product <id>")
+            body = _body_from_args(args)
+            if "openedBuild" not in body:
+                body["openedBuild"] = ["trunk"]
+            if "pri" not in body:
+                body["pri"] = 3
+            if "severity" not in body:
+                body["severity"] = 3
+            if "type" not in body:
+                body["type"] = "codeerror"
+            emit(bug_svc.create_bug(client, product, body, yes=yes), is_list=False)
+            return 0
+        bid = args.id
+        if not bid:
+            raise SystemExit(f"bug {op} requires <id>")
+        if op == "update":
+            emit(
+                bug_svc.update_bug(client, bid, _body_from_args(args), yes=yes),
+                is_list=False,
+            )
+            return 0
+        if op == "delete":
+            emit(bug_svc.delete_bug(client, bid, yes=yes), is_list=False)
+            return 0
+        emit(
+            bug_svc.bug_action(client, op, bid, _body_from_args(args), yes=yes),
+            is_list=False,
+        )
         return 0
 
     if args.cmd == "comment":

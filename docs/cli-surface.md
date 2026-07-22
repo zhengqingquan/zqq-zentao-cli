@@ -202,8 +202,8 @@ zqq-zentao comment list|add|edit …
 
 | 模块 | 列表/详情 | create / update / delete | 动作 |
 |------|-----------|--------------------------|------|
-| `task` | ✅ | ⏳ | ⏳ `start` `finish` `close` `activate` `assign` … |
-| `bug` | ✅ | ⏳ | ⏳ `confirm` `resolve` `close` `activate` `assign` … |
+| `task` | ✅ | ✅ REST（`task create\|update\|delete`，需 `--execution` 创建） | ✅ `start` `finish` `close` `activate` `assign` |
+| `bug` | ✅ | ✅ REST（`bug create\|update\|delete`，需 `--product` 创建） | ✅ `confirm` `resolve` `close` `activate` `assign` |
 | `story` | ✅ | ⏳ | ⏳ `change` `close` `activate` `review` … |
 | `requirement` / `epic` | ⏳ 列表可并入 story 族或独立 | ⏳ | ⏳ 同 story |
 | `todo` | ✅ | ⏳ | ⏳ 按禅道 todo 动作 |
@@ -247,11 +247,11 @@ zqq-zentao comment list|add|edit …
 
 ### P1 — 核心写路径
 
-1. `bug`：create / update / resolve / close / activate / assign  
-2. `task`：create / update / start / finish / close / assign  
+1. ✅ `bug`：create / update / delete / confirm / resolve / close / activate / assign（REST）  
+2. ✅ `task`：create / update / delete / start / finish / close / activate / assign（REST）  
 3. `story`：create / update / close / activate / change  
 
-优先 REST；不通则 Web。统一：写前确认、`--yes`、错误码可读。
+写前确认 + `--yes`（非 TTY 必须带 `--yes`）。优先 REST；不通则 Web。
 
 ### P2 — 其余 CUD + 组织对象
 
@@ -273,7 +273,7 @@ zqq-zentao comment list|add|edit …
 | 会话 / 只读浏览 registry | 大部分 ✅ |
 | `my-tasks` / `my-bugs` + `--type`/`--scope` | ✅ |
 | 其它 `my-*`（stories/todos/test…） | ✅（epic/requirement/docs 等仍 ⏳） |
-| CRUD / 状态动作 | ⏳（仅 `comment` 写 ✅） |
+| CRUD / 状态动作 | bug/task ✅ REST；story 等 ⏳；`comment` 写 ✅ |
 | 文档宣称「做 CRUD」 | ⏳ → 随本文与 README 同步 |
 
 ---

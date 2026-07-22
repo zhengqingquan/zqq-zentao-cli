@@ -71,11 +71,11 @@
 
 优先 REST（见 `docs/zentao-rest-apis.md`）；不通再 Web 表单（学 `comment`）。
 
-- [ ] **bug**：`create` / `update` / `delete` + `confirm` / `resolve` / `close` / `activate` / `assign`
-- [ ] **task**：`create` / `update` / `delete` + `start` / `finish` / `close` / `activate` / `assign`
+- [x] **bug**：`create` / `update` / `delete` + `confirm` / `resolve` / `close` / `activate` / `assign`（REST）
+- [x] **task**：`create` / `update` / `delete` + `start` / `finish` / `close` / `activate` / `assign`（REST）
 - [ ] **story**：`create` / `update` / `delete` + `change` / `close` / `activate` / …
-- [ ] 写前确认；破坏性操作支持 `--yes`
-- [ ] 更新 skill：已实现才执行，未实现对照本文 / `cli-surface`，勿臆造
+- [x] 写前确认；破坏性操作支持 `--yes`（非 TTY 必须 `--yes`）
+- [x] 更新 skill：已实现才执行，未实现对照本文 / `cli-surface`，勿臆造
 
 ### P2 — 其余 CUD
 
@@ -128,6 +128,8 @@
 | `src/list_filter.py` | `--assignedTo` / `--openedBy` / `--status` 客户端过滤 |
 | `src/rest/resources.py` | REST 只读注册表（含 `user_filters`） |
 | `src/rest/tasks.py` | my-tasks / search / execution 任务 |
+| `src/rest/writes.py` | REST 写路径与响应校验 |
+| `src/confirm_util.py` / `payload.py` | 写前确认、`--data` 合并 |
 | `src/web/my_pages.py` | 「我的」Web 页注册表（`--type` / `--scope`） |
 | `src/web/lists.py` | zin dtable 列表共用拉取（空表成功） |
 | `src/web/bugs.py` / `web/tasks.py` / `web/comments.py` | Web 拉页与解析 |
@@ -141,7 +143,7 @@
 
 ## 6. 建议下一刀（给 Agent 的一句话）
 
-> P0-A / P0-B 已完成。下一刀做 **P1 核心写**：优先 REST 实现 bug/task 的 create/update/状态动作（resolve/start/finish…），写前确认与 `--yes`；同步 `cli-surface` / 本文勾选。
+> P1 bug/task 写已落地（REST，离线测）。下一刀：**story 写与状态动作**，或补 Web 翻页拉全 / 用户缓存（P3）；联调真实禅道前用 `--yes` 在隔离环境验证。
 
 ---
 
@@ -152,3 +154,4 @@
 | 2026-07-23 | 初版交接文档（对齐已拍板边界与当前已实现过滤） |
 | 2026-07-23 | P0-A：姓名解析、`--status`、`--pick`/默认列、空 dtable 对齐 |
 | 2026-07-23 | P0-B：`my-* --type/--scope` 与 my-stories/todos/test… 注册表 |
+| 2026-07-23 | P1：bug/task REST 写与状态动作 + `--yes` 确认 |

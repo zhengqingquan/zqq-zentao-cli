@@ -211,3 +211,31 @@ class WebClient:
             return r
 
         return self._with_auth_retry(_run)
+
+    def create_bug(self, product_id: str | int, body: dict[str, Any]) -> dict[str, Any]:
+        raise SystemExit("bug create requires --backend rest")
+
+    def update_bug(self, bug_id: str | int, body: dict[str, Any]) -> dict[str, Any]:
+        raise SystemExit("bug update requires --backend rest")
+
+    def delete_bug(self, bug_id: str | int) -> dict[str, Any]:
+        raise SystemExit("bug delete requires --backend rest")
+
+    def bug_action(
+        self, bug_id: str | int, action: str, body: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
+        raise SystemExit(f"bug {action} requires --backend rest")
+
+    def create_task(self, execution_id: str | int, body: dict[str, Any]) -> dict[str, Any]:
+        raise SystemExit("task create requires --backend rest")
+
+    def update_task(self, task_id: str | int, body: dict[str, Any]) -> dict[str, Any]:
+        raise SystemExit("task update requires --backend rest")
+
+    def delete_task(self, task_id: str | int) -> dict[str, Any]:
+        raise SystemExit("task delete requires --backend rest")
+
+    def task_action(
+        self, task_id: str | int, action: str, body: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
+        raise SystemExit(f"task {action} requires --backend rest")
