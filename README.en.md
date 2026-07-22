@@ -74,10 +74,17 @@ Auth behavior:
 ```bash
 zqq-zentao login -s https://zentao.example.com -u admin -p secret
 zqq-zentao whoami
-zqq-zentao --backend rest whoami
 zqq-zentao my-tasks
+zqq-zentao tasks
 zqq-zentao tasks --execution 1664
-zqq-zentao task 39973
+zqq-zentao task 39980
+zqq-zentao projects --limit 5
+zqq-zentao executions --limit 5
+zqq-zentao execution 1664
+zqq-zentao users --limit 5
+zqq-zentao user admin
+zqq-zentao programs
+zqq-zentao departments
 zqq-zentao comment list task 39973
 zqq-zentao comment add task 39973 "comment text"
 zqq-zentao comment edit 1063694 "updated comment"
@@ -87,12 +94,18 @@ zqq-zentao comment edit 1063694 "updated comment"
 |---------|-------------|---------|
 | `login` | Login and cache Cookie / Token | web + rest (`auto`) |
 | `whoami` | Current account and server | web / rest |
-| `my-tasks` | Tasks assigned to me | web / rest |
+| `my-tasks` | Tasks assigned to me (REST filters `/tasks` by assignee) | web / rest |
+| `tasks` | REST task list (`--page` / `--limit`) | **rest only** |
 | `tasks -e <id>` | Tasks under an execution | web / rest |
-| `task <id>` | Task detail (JSON) | web / rest |
+| `task <id>` | Task detail (REST returns full fields) | web / rest |
+| `users` / `user <account>` | User list / detail | **rest only** |
+| `projects` | Project list | **rest only** |
+| `programs` | Program list | **rest only** |
+| `executions` / `execution <id>` | Execution list / detail | **rest only** |
+| `departments` | Department list | **rest only** |
 | `comment list/add/edit` | Comment CRUD | **web only** |
 
-`--backend` overrides `ZENTAO_BACKEND`. For `auto`: prefer rest when a token exists (env or config file), otherwise web; comment commands always use web. `login` with `auto` performs both Web and REST credential exchange.
+`--backend` overrides `ZENTAO_BACKEND`. For `auto`: prefer rest when a token exists (env or config file), otherwise web; rest-only / web-only commands force that backend. `login` with `auto` performs both Web and REST credential exchange.
 
 ## Layout
 

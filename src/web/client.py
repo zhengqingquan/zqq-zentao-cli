@@ -123,6 +123,30 @@ class WebClient:
 
         return self._with_auth_retry(_run)
 
+    def list_tasks(self, *, page: int = 1, limit: int = 100) -> dict[str, Any]:
+        raise SystemExit("tasks without --execution requires --backend rest")
+
+    def list_users(self, *, page: int = 1, limit: int = 50) -> dict[str, Any]:
+        raise SystemExit("users requires --backend rest")
+
+    def get_user(self, account: str) -> dict[str, Any]:
+        raise SystemExit("user requires --backend rest")
+
+    def list_projects(self, *, page: int = 1, limit: int = 50) -> dict[str, Any]:
+        raise SystemExit("projects requires --backend rest")
+
+    def list_programs(self, *, page: int = 1, limit: int = 50) -> dict[str, Any]:
+        raise SystemExit("programs requires --backend rest")
+
+    def list_executions(self, *, page: int = 1, limit: int = 50) -> dict[str, Any]:
+        raise SystemExit("executions requires --backend rest")
+
+    def get_execution(self, execution_id: str | int) -> dict[str, Any]:
+        raise SystemExit("execution requires --backend rest")
+
+    def list_departments(self) -> dict[str, Any]:
+        raise SystemExit("departments requires --backend rest")
+
     def list_comments(self, object_type: str, object_id: str | int) -> list[Any]:
         def _run() -> list[Any]:
             return comments_api.list_comments(self._sess, object_type, object_id)

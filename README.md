@@ -74,10 +74,17 @@ zqq-zentao login
 ```bash
 zqq-zentao login -s https://zentao.example.com -u admin -p secret
 zqq-zentao whoami
-zqq-zentao --backend rest whoami
 zqq-zentao my-tasks
+zqq-zentao tasks
 zqq-zentao tasks --execution 1664
-zqq-zentao task 39973
+zqq-zentao task 39980
+zqq-zentao projects --limit 5
+zqq-zentao executions --limit 5
+zqq-zentao execution 1664
+zqq-zentao users --limit 5
+zqq-zentao user admin
+zqq-zentao programs
+zqq-zentao departments
 zqq-zentao comment list task 39973
 zqq-zentao comment add task 39973 "备注内容"
 zqq-zentao comment edit 1063694 "新备注"
@@ -87,12 +94,18 @@ zqq-zentao comment edit 1063694 "新备注"
 |------|------|------|
 | `login` | 登录并缓存 Cookie / Token | web + rest（`auto`） |
 | `whoami` | 当前账号与服务器 | web / rest |
-| `my-tasks` | 指派给我的任务 | web / rest |
+| `my-tasks` | 指派给我的任务（REST 用 `/tasks` 过滤指派人） | web / rest |
+| `tasks` | REST 任务列表（`--page` / `--limit`） | **仅 rest** |
 | `tasks -e <id>` | 某执行下的任务列表 | web / rest |
-| `task <id>` | 任务详情（JSON） | web / rest |
+| `task <id>` | 任务详情（REST 返回完整字段） | web / rest |
+| `users` / `user <account>` | 用户列表 / 详情 | **仅 rest** |
+| `projects` | 项目列表 | **仅 rest** |
+| `programs` | 项目集列表 | **仅 rest** |
+| `executions` / `execution <id>` | 执行列表 / 详情 | **仅 rest** |
+| `departments` | 部门列表 | **仅 rest** |
 | `comment list/add/edit` | 备注增改查 | **仅 web** |
 
-`--backend` 可覆盖 `ZENTAO_BACKEND`。`auto`：有 Token（环境变量或配置文件）偏向 rest，否则 web；备注类命令强制 web。`login` 在 `auto` 下会同时完成 Web 与 REST 换票。
+`--backend` 可覆盖 `ZENTAO_BACKEND`。`auto`：有 Token（环境变量或配置文件）偏向 rest，否则 web；仅 rest / 仅 web 的命令会强制对应通道。`login` 在 `auto` 下会同时完成 Web 与 REST 换票。
 
 ## 目录结构
 

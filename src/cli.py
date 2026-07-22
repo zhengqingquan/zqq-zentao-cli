@@ -12,10 +12,17 @@ Auth:
 Usage:
   zqq-zentao login -s https://zentao.example.com -u admin -p secret
   zqq-zentao whoami
-  zqq-zentao --backend rest whoami
   zqq-zentao my-tasks
+  zqq-zentao tasks
   zqq-zentao tasks --execution 1664
   zqq-zentao task 39973
+  zqq-zentao projects
+  zqq-zentao executions
+  zqq-zentao execution 1664
+  zqq-zentao users
+  zqq-zentao user admin
+  zqq-zentao programs
+  zqq-zentao departments
   zqq-zentao comment list task 39973
 
 Never print Cookie / password / Token.
@@ -25,17 +32,25 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from typing import Any
 
 from .factory import create_client
 from .services import auth as auth_svc
+from .services import browse as browse_svc
 from .services import comments as comment_svc
 from .services import tasks as task_svc
 from .web.parse import strip_tags
 
 
 def print_json(obj: Any) -> None:
-    print(json.dumps(obj, ensure_ascii=False, indent=2))
+    text = json.dumps(obj, ensure_ascii=False, indent=2)
+    try:
+        print(text)
+    except UnicodeEncodeError:
+        enc = getattr(sys.stdout, "encoding", None) or "utf-8"
+        sys.stdout.buffer.write((text + "\n").encode(enc, errors="replace"))
+        sys.stdout.buffer.flush()
 
 
 def print_task_table(rows: list[dict[str, Any]]) -> None:
@@ -67,6 +82,16 @@ def print_comment_list(data: list[Any]) -> None:
     print(f"count={len(data)}")
 
 
+def _add_page_limit(parser: argparse.ArgumentParser, *, limit: int = 50) -> None:
+    parser.add_argument("--page", type=int, default=1, help="Page number (default 1)")
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=limit,
+        help=f"Page size (default {limit})",
+    )
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="zqq-zentao",
@@ -91,11 +116,35 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("whoami", help="Show configured account and server")
     sub.add_parser("my-tasks", help="Tasks assigned to me")
 
-    p_tasks = sub.add_parser("tasks", help="Task list under an execution")
-    p_tasks.add_argument("--execution", "-e", required=True, help="Execution ID")
+    p_tasks = sub.add_parser(
+        "tasks",
+        help="Task list: REST /tasks, or --execution for one execution (web/rest)",
+    )
+    p_tasks.add_argument("--execution", "-e", help="Execution ID")
+    _add_page_limit(p_tasks, limit=100)
 
-    p_task = sub.add_parser("task", help="Task detail (JSON)")
+    p_task = sub.add_parser("task", help="Task detail (JSON; REST returns full fields)")
     p_task.add_argument("id", help="Task ID")
+
+    p_users = sub.add_parser("users", help="User list (REST)")
+    _add_page_limit(p_users)
+
+    p_user = sub.add_parser("user", help="User detail (REST)")
+    p_user.add_argument("account", help="Account")
+
+    p_projects = sub.add_parser("projects", help="Project list (REST)")
+    _add_page_limit(p_projects)
+
+    p_programs = sub.add_parser("programs", help="Program list (REST)")
+    _add_page_limit(p_programs)
+
+    p_executions = sub.add_parser("executions", help="Execution list (REST)")
+    _add_page_limit(p_executions)
+
+    p_execution = sub.add_parser("execution", help="Execution detail (REST)")
+    p_execution.add_argument("id", help="Execution ID")
+
+    sub.add_parser("departments", help="Department list (REST)")
 
     p_c = sub.add_parser("comment", help="Comment list/add/edit (web only)")
     csub = p_c.add_subparsers(dest="c_cmd", required=True)
@@ -119,6 +168,8 @@ def build_parser() -> argparse.ArgumentParser:
 def _capability(args: argparse.Namespace) -> str:
     if args.cmd == "comment":
         return f"comment.{args.c_cmd}"
+    if args.cmd == "tasks" and not args.execution:
+        return "tasks.list"
     return args.cmd
 
 
@@ -148,11 +199,42 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.cmd == "tasks":
-        print_task_table(task_svc.execution_tasks(client, args.execution))
+        if args.execution:
+            print_task_table(task_svc.execution_tasks(client, args.execution))
+        else:
+            print_json(task_svc.list_tasks(client, page=args.page, limit=args.limit))
         return 0
 
     if args.cmd == "task":
         print_json(task_svc.get_task(client, args.id))
+        return 0
+
+    if args.cmd == "users":
+        print_json(browse_svc.list_users(client, page=args.page, limit=args.limit))
+        return 0
+
+    if args.cmd == "user":
+        print_json(browse_svc.get_user(client, args.account))
+        return 0
+
+    if args.cmd == "projects":
+        print_json(browse_svc.list_projects(client, page=args.page, limit=args.limit))
+        return 0
+
+    if args.cmd == "programs":
+        print_json(browse_svc.list_programs(client, page=args.page, limit=args.limit))
+        return 0
+
+    if args.cmd == "executions":
+        print_json(browse_svc.list_executions(client, page=args.page, limit=args.limit))
+        return 0
+
+    if args.cmd == "execution":
+        print_json(browse_svc.get_execution(client, args.id))
+        return 0
+
+    if args.cmd == "departments":
+        print_json(browse_svc.list_departments(client))
         return 0
 
     if args.cmd == "comment":

@@ -13,6 +13,10 @@ def my_tasks(client: ZenTaoClient) -> list[dict[str, Any]]:
     return client.my_tasks()
 
 
+def list_tasks(client: ZenTaoClient, *, page: int = 1, limit: int = 100) -> dict[str, Any]:
+    return client.list_tasks(page=page, limit=limit)
+
+
 def execution_tasks(client: ZenTaoClient, execution_id: str | int) -> list[dict[str, Any]]:
     return client.execution_tasks(execution_id)
 
