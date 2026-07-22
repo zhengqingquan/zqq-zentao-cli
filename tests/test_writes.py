@@ -12,6 +12,8 @@ from zqq_zentao_cli.rest.writes import (
     bug_action_path,
     bug_create_path,
     check_write_response,
+    story_action_path,
+    story_create_path,
     task_action_path,
     task_create_path,
 )
@@ -34,6 +36,12 @@ def test_write_paths() -> None:
     assert bug_action_path(9, "resolve") == "/bugs/9/resolve"
     assert task_create_path(1664) == "/executions/1664/tasks"
     assert task_action_path(3, "assignto") == "/tasks/3/assignto"
+    assert story_create_path(12) == "/products/12/stories"
+    assert story_action_path(100, "change") == "/stories/100/change"
+    assert story_action_path(100, "active") == "/stories/100/active"
+    assert story_action_path(100, "assign") == "/stories/100/assign"
+    assert story_action_path(100, "submitreview") == "/stories/100/submitreview"
+    assert story_action_path(100, "recall") == "/stories/100/recall"
 
 
 def test_check_write_response_ok() -> None:
@@ -88,3 +96,32 @@ def test_cli_task_bug_write_parsers() -> None:
     )
     assert create_b.op == "create"
     assert create_b.product == "12"
+
+    get_s = parser.parse_args(["story", "100"])
+    assert get_s.op == "100"
+    assert _capability(get_s) == "story"
+
+    change = parser.parse_args(
+        ["story", "change", "100", "--yes", "--title", "new", "--spec", "desc"]
+    )
+    assert change.op == "change"
+    assert change.id == "100"
+    assert change.spec == "desc"
+    assert _capability(change) == "story.write"
+
+    create_s = parser.parse_args(
+        [
+            "story",
+            "create",
+            "--product",
+            "12",
+            "--title",
+            "need login",
+            "--spec",
+            "as user…",
+            "--yes",
+        ]
+    )
+    assert create_s.op == "create"
+    assert create_s.product == "12"
+    assert create_s.title == "need login"

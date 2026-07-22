@@ -36,6 +36,7 @@ from .services import bugs as bug_svc
 from .services import comments as comment_svc
 from .services import my_pages as my_page_svc
 from .services import resources as resource_svc
+from .services import stories as story_svc
 from .services import tasks as task_svc
 from .payload import merge_payload
 from .user_resolve import resolve_optional
@@ -47,6 +48,20 @@ _BUG_OPS = frozenset(
 )
 _TASK_OPS = frozenset(
     {"create", "update", "delete", "start", "finish", "close", "activate", "assign"}
+)
+_STORY_OPS = frozenset(
+    {
+        "create",
+        "update",
+        "delete",
+        "change",
+        "close",
+        "activate",
+        "assign",
+        "review",
+        "submitreview",
+        "recall",
+    }
 )
 
 _SCOPE_FLAGS = (
@@ -215,9 +230,14 @@ def _add_write_flags(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--severity", default=None)
     parser.add_argument("--type", dest="obj_type", default=None, help="Object type field")
     parser.add_argument("--resolution", default=None, help="Bug resolution")
-    parser.add_argument("--product", default=None, help="Product id (bug create)")
+    parser.add_argument("--product", default=None, help="Product id (bug/story create)")
     parser.add_argument("--execution", "-e", default=None, help="Execution id (task create)")
     parser.add_argument("--openedBuild", default=None, help="Bug openedBuild (default trunk)")
+    parser.add_argument("--spec", default=None, help="Story description / spec")
+    parser.add_argument("--verify", default=None, help="Story acceptance criteria")
+    parser.add_argument("--category", default=None, help="Story category (e.g. feature)")
+    parser.add_argument("--closedReason", default=None, help="Story close reason")
+    parser.add_argument("--result", default=None, help="Story review result")
     parser.add_argument("--estStarted", default=None)
     parser.add_argument("--deadline", default=None)
     parser.add_argument("--consumed", default=None)
@@ -242,6 +262,11 @@ def _body_from_args(args: argparse.Namespace, *, extra: dict | None = None) -> d
         "type": getattr(args, "obj_type", None),
         "resolution": getattr(args, "resolution", None),
         "openedBuild": getattr(args, "openedBuild", None),
+        "spec": getattr(args, "spec", None),
+        "verify": getattr(args, "verify", None),
+        "category": getattr(args, "category", None),
+        "closedReason": getattr(args, "closedReason", None),
+        "result": getattr(args, "result", None),
         "estStarted": getattr(args, "estStarted", None),
         "deadline": getattr(args, "deadline", None),
         "consumed": getattr(args, "consumed", None),
@@ -407,6 +432,20 @@ def build_parser() -> argparse.ArgumentParser:
     p_bug.add_argument("id", nargs="?", help="Bug id for write/actions")
     _add_write_flags(p_bug)
 
+    p_story = sub.add_parser(
+        "story",
+        help="Story detail or write: story <id> | story create|update|delete|change|…",
+    )
+    p_story.add_argument(
+        "op",
+        help=(
+            "Story id (detail) or action: create|update|delete|change|close|"
+            "activate|assign|review|submitreview|recall"
+        ),
+    )
+    p_story.add_argument("id", nargs="?", help="Story id for write/actions")
+    _add_write_flags(p_story)
+
     p_c = sub.add_parser("comment", help="Comment list/add/edit (web only)")
     csub = p_c.add_subparsers(dest="c_cmd", required=True)
 
@@ -439,6 +478,8 @@ def _capability(args: argparse.Namespace) -> str:
         return "task.write"
     if args.cmd == "bug":
         return "bug" if (_is_id_token(args.op) and args.id is None) else "bug.write"
+    if args.cmd == "story":
+        return "story" if (_is_id_token(args.op) and args.id is None) else "story.write"
     page = my_page_by_cmd(args.cmd)
     if page is not None:
         scope, browse_type = resolve_browse(
@@ -695,6 +736,52 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         emit(
             bug_svc.bug_action(client, op, bid, _body_from_args(args), yes=yes),
+            is_list=False,
+        )
+        return 0
+
+    if args.cmd == "story":
+        yes = bool(getattr(args, "yes", False))
+        if _is_id_token(args.op) and args.id is None:
+            emit(resource_svc.get_by_cmd(client, "story", args.op), is_list=False)
+            return 0
+        op = str(args.op).strip().lower()
+        if op not in _STORY_OPS:
+            raise SystemExit(
+                f"Unknown story op {args.op!r}; use story <id> or "
+                f"create|update|delete|change|close|activate|assign|review|submitreview|recall"
+            )
+        if op == "create":
+            product = args.product
+            if not product:
+                raise SystemExit("story create requires --product <id>")
+            body = _body_from_args(args)
+            if "title" not in body:
+                raise SystemExit("story create requires --title or --data with title")
+            if "spec" not in body:
+                body["spec"] = body["title"]
+            if "pri" not in body:
+                body["pri"] = 3
+            if "category" not in body:
+                body["category"] = "feature"
+            if "type" not in body:
+                body["type"] = "story"
+            emit(story_svc.create_story(client, product, body, yes=yes), is_list=False)
+            return 0
+        sid = args.id
+        if not sid:
+            raise SystemExit(f"story {op} requires <id>")
+        if op == "update":
+            emit(
+                story_svc.update_story(client, sid, _body_from_args(args), yes=yes),
+                is_list=False,
+            )
+            return 0
+        if op == "delete":
+            emit(story_svc.delete_story(client, sid, yes=yes), is_list=False)
+            return 0
+        emit(
+            story_svc.story_action(client, op, sid, _body_from_args(args), yes=yes),
             is_list=False,
         )
         return 0

@@ -441,3 +441,47 @@ class RestClient:
             body=body or {},
             label=f"task {action} {task_id}",
         )
+
+    def create_story(self, product_id: str | int, body: dict[str, Any]) -> dict[str, Any]:
+        from .writes import story_create_path
+
+        return self._mutate(
+            "POST",
+            story_create_path(product_id),
+            body=body,
+            label="story create",
+        )
+
+    def update_story(self, story_id: str | int, body: dict[str, Any]) -> dict[str, Any]:
+        from .writes import story_item_path
+
+        return self._mutate(
+            "PUT",
+            story_item_path(story_id),
+            body=body,
+            label=f"story update {story_id}",
+        )
+
+    def delete_story(self, story_id: str | int) -> dict[str, Any]:
+        from .writes import story_item_path
+
+        return self._mutate(
+            "DELETE",
+            story_item_path(story_id),
+            body={},
+            label=f"story delete {story_id}",
+        )
+
+    def story_action(
+        self, story_id: str | int, action: str, body: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
+        from .writes import story_action_path
+
+        path_action = {"activate": "active"}.get(action, action)
+        method = "DELETE" if action == "recall" else "POST"
+        return self._mutate(
+            method,
+            story_action_path(story_id, path_action),
+            body=body or {},
+            label=f"story {action} {story_id}",
+        )

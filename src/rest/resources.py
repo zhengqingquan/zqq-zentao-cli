@@ -54,6 +54,7 @@ SPECIAL_CMDS = frozenset(
         "tasks",  # dual-backend + table output; also covers registry key "tasks"
         "task",
         "bug",  # get + REST write/actions (overrides registry detail-only)
+        "story",  # get + REST write/actions (overrides registry detail-only)
         "comment",
     }
 )

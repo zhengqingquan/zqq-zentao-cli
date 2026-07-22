@@ -34,6 +34,19 @@ def task_action_path(task_id: str | int, action: str) -> str:
     return f"/tasks/{quote(str(task_id), safe='')}/{action}"
 
 
+def story_create_path(product_id: str | int) -> str:
+    return f"/products/{quote(str(product_id), safe='')}/stories"
+
+
+def story_item_path(story_id: str | int) -> str:
+    return f"/stories/{quote(str(story_id), safe='')}"
+
+
+def story_action_path(story_id: str | int, action: str) -> str:
+    # ZenTao: change/close/active/assign/review/submitreview/recall/estimate
+    return f"/stories/{quote(str(story_id), safe='')}/{action}"
+
+
 def check_write_response(r: dict[str, Any], *, label: str) -> Any:
     """Raise SystemExit on HTTP/API failure; return parsed data."""
     status = r.get("status")

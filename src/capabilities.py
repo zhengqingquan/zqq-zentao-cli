@@ -20,6 +20,8 @@ CAPABILITIES: dict[str, frozenset[BackendName]] = {
     "task.write": frozenset({"rest"}),
     "bug": frozenset({"rest"}),
     "bug.write": frozenset({"rest"}),
+    "story": frozenset({"rest"}),
+    "story.write": frozenset({"rest"}),
     "comment.list": frozenset({"web"}),
     "comment.add": frozenset({"web"}),
     "comment.edit": frozenset({"web"}),

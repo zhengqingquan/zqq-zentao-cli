@@ -142,6 +142,9 @@ zqq-zentao products --limit 5
 zqq-zentao product 12
 zqq-zentao stories --product 12
 zqq-zentao story 100
+zqq-zentao story create --product 12 --title "need login" --spec "as a user I can log in" --yes
+zqq-zentao story change 100 --title "need SSO login" --spec "…" --yes
+zqq-zentao story close 100 --closedReason done --yes
 zqq-zentao bugs --product 12
 zqq-zentao bug 200
 zqq-zentao bug resolve 200 --resolution fixed --yes
@@ -164,6 +167,7 @@ zqq-zentao comment edit 1063694 "新备注"
 | `tasks -e <id>` | 某执行下的任务；可 `--assignedTo` / `--openedBy` | web / rest |
 | `task <id>` / `task <action> <id>` | 任务详情；写/动作（create/update/delete/start/finish/close/activate/assign，REST） | 详情 web/rest；写 **rest** |
 | `bug <id>` / `bug <action> <id>` | Bug 详情；写/动作（create/update/delete/confirm/resolve/close/activate/assign，REST） | **rest** |
+| `story <id>` / `story <action> <id>` | 需求详情；写/动作（create/update/delete/change/close/activate/assign/review/submitreview/recall，REST） | **rest** |
 | `users` / `user <account>` | 用户列表（可 `--search`）/ 详情 | **仅 rest** |
 | `projects` | 项目列表（可选 `--program` / `--product`） | **仅 rest** |
 | `project <id>` | 项目详情 | **仅 rest** |
@@ -171,8 +175,8 @@ zqq-zentao comment edit 1063694 "新备注"
 | `products` / `product <id>` | 产品列表 / 详情（列表可选 `--program`） | **仅 rest** |
 | `executions` / `execution <id>` | 执行列表 / 详情 | **仅 rest** |
 | `departments` / `department <id>` | 部门列表 / 详情 | **仅 rest** |
-| `stories` / `story` | 需求列表 / 详情（需 scope；可 `--assignedTo` / `--openedBy`） | **仅 rest** |
-| `bugs` / `bug` | Bug 列表 / 详情（需 scope；可 `--assignedTo` / `--openedBy`） | **仅 rest** |
+| `stories` / `story` | 需求列表 / 详情与写（列表需 scope；可 `--assignedTo` / `--openedBy`） | **仅 rest** |
+| `bugs` / `bug` | Bug 列表 / 详情与写（列表需 scope；可 `--assignedTo` / `--openedBy`） | **仅 rest** |
 | `productplans` / `releases` / `builds` 等 | 计划/发布/版本/测试/反馈/工单/待办/问题/风险/会议/文档等只读 | **仅 rest** |
 | `ping` / `groups` / `configurations` 等 | 系统只读 | **仅 rest** |
 | `comment list/add/edit` | 备注增改查 | **仅 web** |

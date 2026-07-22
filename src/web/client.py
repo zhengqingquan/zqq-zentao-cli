@@ -239,3 +239,17 @@ class WebClient:
         self, task_id: str | int, action: str, body: dict[str, Any] | None = None
     ) -> dict[str, Any]:
         raise SystemExit(f"task {action} requires --backend rest")
+
+    def create_story(self, product_id: str | int, body: dict[str, Any]) -> dict[str, Any]:
+        raise SystemExit("story create requires --backend rest")
+
+    def update_story(self, story_id: str | int, body: dict[str, Any]) -> dict[str, Any]:
+        raise SystemExit("story update requires --backend rest")
+
+    def delete_story(self, story_id: str | int) -> dict[str, Any]:
+        raise SystemExit("story delete requires --backend rest")
+
+    def story_action(
+        self, story_id: str | int, action: str, body: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
+        raise SystemExit(f"story {action} requires --backend rest")

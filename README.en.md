@@ -142,6 +142,9 @@ zqq-zentao products --limit 5
 zqq-zentao product 12
 zqq-zentao stories --product 12
 zqq-zentao story 100
+zqq-zentao story create --product 12 --title "need login" --spec "as a user I can log in" --yes
+zqq-zentao story change 100 --title "need SSO login" --spec "…" --yes
+zqq-zentao story close 100 --closedReason done --yes
 zqq-zentao bugs --product 12
 zqq-zentao bug 200
 zqq-zentao bug resolve 200 --resolution fixed --yes
@@ -164,6 +167,7 @@ zqq-zentao comment edit 1063694 "updated comment"
 | `tasks -e <id>` | Tasks under an execution; `--assignedTo` / `--openedBy` | web / rest |
 | `task <id>` / `task <action> <id>` | Task detail; writes/actions (REST) | detail web/rest; write **rest** |
 | `bug <id>` / `bug <action> <id>` | Bug detail; writes/actions (REST) | **rest** |
+| `story <id>` / `story <action> <id>` | Story detail; writes/actions (create/update/delete/change/close/activate/assign/review/submitreview/recall, REST) | **rest** |
 | `users` / `user <account>` | User list (optional `--search`) / detail | **rest only** |
 | `projects` | Project list (optional `--program` / `--product`) | **rest only** |
 | `project <id>` | Project detail | **rest only** |
@@ -171,8 +175,8 @@ zqq-zentao comment edit 1063694 "updated comment"
 | `products` / `product <id>` | Product list / detail (list may use `--program`) | **rest only** |
 | `executions` / `execution <id>` | Execution list / detail | **rest only** |
 | `departments` / `department <id>` | Department list / detail | **rest only** |
-| `stories` / `story` | Story list / detail (needs scope; `--assignedTo` / `--openedBy`) | **rest only** |
-| `bugs` / `bug` | Bug list / detail (needs scope; `--assignedTo` / `--openedBy`) | **rest only** |
+| `stories` / `story` | Story list / detail and writes (list needs scope; `--assignedTo` / `--openedBy`) | **rest only** |
+| `bugs` / `bug` | Bug list / detail and writes (list needs scope; `--assignedTo` / `--openedBy`) | **rest only** |
 | `productplans` / `releases` / `builds` / … | Read-only plans, releases, builds, test, feedback, tickets, todos, issues, risks, meetings, docs | **rest only** |
 | `ping` / `groups` / `configurations` / … | System read-only | **rest only** |
 | `comment list/add/edit` | Comment CRUD | **web only** |
