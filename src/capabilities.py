@@ -7,6 +7,7 @@ from __future__ import annotations
 from typing import Literal
 
 from .config import Backend, env_backend, resolve_token
+from .rest.resources import capability_names
 
 BackendName = Literal["web", "rest"]
 
@@ -27,6 +28,9 @@ CAPABILITIES: dict[str, frozenset[BackendName]] = {
     "comment.add": frozenset({"web"}),
     "comment.edit": frozenset({"web"}),
 }
+
+for _cap in capability_names():
+    CAPABILITIES.setdefault(_cap, frozenset({"rest"}))
 
 
 def prefer_backend() -> BackendName:

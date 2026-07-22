@@ -10,22 +10,6 @@ Auth:
   - Backend: --backend / ZENTAO_BACKEND = web|rest|auto
   - TLS: --insecure / --secure / ZENTAO_INSECURE (default skip verify)
 
-Usage:
-  zqq-zentao --insecure login -s https://zentao.example.com -u admin -p secret
-  zqq-zentao whoami
-  zqq-zentao my-tasks
-  zqq-zentao tasks
-  zqq-zentao tasks --execution 1664
-  zqq-zentao task 39973
-  zqq-zentao projects
-  zqq-zentao executions
-  zqq-zentao execution 1664
-  zqq-zentao users
-  zqq-zentao user admin
-  zqq-zentao programs
-  zqq-zentao departments
-  zqq-zentao comment list task 39973
-
 Never print Cookie / password / Token.
 """
 
@@ -37,11 +21,26 @@ import sys
 from typing import Any
 
 from .factory import create_client
+from .rest.resources import (
+    EXISTING_CMDS,
+    resource_by_detail_cmd,
+    resource_by_list_cmd,
+    resources_for_cli,
+)
 from .services import auth as auth_svc
 from .services import browse as browse_svc
 from .services import comments as comment_svc
+from .services import resources as resource_svc
 from .services import tasks as task_svc
 from .web.parse import strip_tags
+
+_SCOPE_FLAGS = (
+    ("product", "Scope by product ID"),
+    ("project", "Scope by project ID"),
+    ("execution", "Scope by execution ID"),
+    ("program", "Scope by program ID"),
+    ("lib", "Scope by doc lib ID"),
+)
 
 
 def print_json(obj: Any) -> None:
@@ -91,6 +90,43 @@ def _add_page_limit(parser: argparse.ArgumentParser, *, limit: int = 50) -> None
         default=limit,
         help=f"Page size (default {limit})",
     )
+
+
+def _add_scope_flags(parser: argparse.ArgumentParser, scope_names: dict[str, str]) -> None:
+    for name, help_text in _SCOPE_FLAGS:
+        if name not in scope_names:
+            continue
+        parser.add_argument(f"--{name}", help=help_text)
+
+
+def _register_resource_parsers(sub: argparse._SubParsersAction[Any]) -> None:
+    registered: set[str] = set()
+    for res in resources_for_cli():
+        if res.list_cmd and res.list_cmd not in EXISTING_CMDS and res.list_cmd not in registered:
+            p = sub.add_parser(res.list_cmd, help=res.help)
+            if res.path_param:
+                p.add_argument(res.path_param, help=f"{res.path_param} path parameter")
+            if res.paginated:
+                _add_page_limit(p)
+            if res.scopes:
+                _add_scope_flags(p, res.scopes)
+            for qname in res.query_params:
+                req = qname in res.required_query
+                p.add_argument(
+                    f"--{qname}",
+                    required=req,
+                    help=f"Query param {qname}" + (" (required)" if req else ""),
+                )
+            registered.add(res.list_cmd)
+
+        if (
+            res.detail_cmd
+            and res.detail_cmd not in EXISTING_CMDS
+            and res.detail_cmd not in registered
+        ):
+            p = sub.add_parser(res.detail_cmd, help=res.help)
+            p.add_argument("id", help="Resource ID")
+            registered.add(res.detail_cmd)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -146,6 +182,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_projects = sub.add_parser("projects", help="Project list (REST)")
     _add_page_limit(p_projects)
+    p_projects.add_argument("--program", help="Scope by program ID")
+    p_projects.add_argument("--product", help="Scope by product ID")
 
     p_programs = sub.add_parser("programs", help="Program list (REST)")
     _add_page_limit(p_programs)
@@ -174,6 +212,8 @@ def build_parser() -> argparse.ArgumentParser:
     p_edit.add_argument("action_id", help="Action ID (from list)")
     p_edit.add_argument("comment", nargs="+")
 
+    _register_resource_parsers(sub)
+
     return p
 
 
@@ -191,6 +231,38 @@ def _cli_insecure(args: argparse.Namespace) -> bool | None:
     if args.secure:
         return False
     return None
+
+
+def _dispatch_registry(client: Any, args: argparse.Namespace) -> bool:
+    """Handle registry-driven list/detail commands. Returns True if handled."""
+    list_res = resource_by_list_cmd(args.cmd)
+    if list_res is not None and args.cmd not in EXISTING_CMDS:
+        path_param = None
+        if list_res.path_param:
+            path_param = getattr(args, list_res.path_param, None)
+        scopes = resource_svc.scopes_from_args(args, list_res) if list_res.scopes else None
+        query = resource_svc.query_from_args(args, list_res) if list_res.query_params else None
+        page = getattr(args, "page", 1)
+        limit = getattr(args, "limit", 50)
+        print_json(
+            resource_svc.list_by_cmd(
+                client,
+                args.cmd,
+                page=page,
+                limit=limit,
+                scopes=scopes,
+                path_param=path_param,
+                query=query,
+            )
+        )
+        return True
+
+    detail_res = resource_by_detail_cmd(args.cmd)
+    if detail_res is not None and args.cmd not in EXISTING_CMDS:
+        print_json(resource_svc.get_by_cmd(client, args.cmd, args.id))
+        return True
+
+    return False
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -240,7 +312,15 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.cmd == "projects":
-        print_json(browse_svc.list_projects(client, page=args.page, limit=args.limit))
+        print_json(
+            resource_svc.list_projects_scoped(
+                client,
+                page=args.page,
+                limit=args.limit,
+                program=args.program,
+                product=args.product,
+            )
+        )
         return 0
 
     if args.cmd == "programs":
@@ -273,6 +353,9 @@ def main(argv: list[str] | None = None) -> int:
             r = comment_svc.edit_comment(client, args.action_id, text)
             print_json({"http": r["status"], "result": r["data"], "backend": client.backend})
             return 0
+
+    if _dispatch_registry(client, args):
+        return 0
 
     parser.error("unknown command")
     return 2

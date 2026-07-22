@@ -10,6 +10,7 @@ ZenTao dual-backend CLI: **Web (PATHINFO + Cookie)** and **REST (Token)**.
 - Web supports comment read/write; REST fits structured task reads
 - Shares env vars and `~/.config/zentao/zentao.json` with the official [zentao-cli](https://github.com/easysoft/zentao-cli) (this tool also stores `webCookies`)
 - Web PATHINFO API notes: [docs/zentao-apis.md](./docs/zentao-apis.md)
+- REST API v1 (from 22.3 source): [docs/zentao-rest-apis.md](./docs/zentao-rest-apis.md)
 
 ## Install
 
@@ -94,11 +95,20 @@ zqq-zentao tasks
 zqq-zentao tasks --execution 1664
 zqq-zentao task 39980
 zqq-zentao projects --limit 5
+zqq-zentao projects --program 1
 zqq-zentao executions --limit 5
 zqq-zentao execution 1664
 zqq-zentao users --limit 5
 zqq-zentao user admin
 zqq-zentao programs
+zqq-zentao program 1
+zqq-zentao products --limit 5
+zqq-zentao product 12
+zqq-zentao stories --product 12
+zqq-zentao story 100
+zqq-zentao bugs --product 12
+zqq-zentao bug 200
+zqq-zentao ping
 zqq-zentao departments
 zqq-zentao comment list task 39973
 zqq-zentao comment add task 39973 "comment text"
@@ -114,11 +124,19 @@ zqq-zentao comment edit 1063694 "updated comment"
 | `tasks -e <id>` | Tasks under an execution | web / rest |
 | `task <id>` | Task detail (REST returns full fields) | web / rest |
 | `users` / `user <account>` | User list / detail | **rest only** |
-| `projects` | Project list | **rest only** |
-| `programs` | Program list | **rest only** |
+| `projects` | Project list (optional `--program` / `--product`) | **rest only** |
+| `project <id>` | Project detail | **rest only** |
+| `programs` / `program <id>` | Program list / detail | **rest only** |
+| `products` / `product <id>` | Product list / detail (list may use `--program`) | **rest only** |
 | `executions` / `execution <id>` | Execution list / detail | **rest only** |
-| `departments` | Department list | **rest only** |
+| `departments` / `department <id>` | Department list / detail | **rest only** |
+| `stories` / `story` | Story list / detail (list needs `--product`/`--project`/`--execution`) | **rest only** |
+| `bugs` / `bug` | Bug list / detail (same scopes) | **rest only** |
+| `productplans` / `releases` / `builds` / … | Read-only plans, releases, builds, test, feedback, tickets, todos, issues, risks, meetings, docs | **rest only** |
+| `ping` / `groups` / `configurations` / … | System read-only | **rest only** |
 | `comment list/add/edit` | Comment CRUD | **web only** |
+
+REST read-only modules are driven by [`src/rest/resources.py`](./src/rest/resources.py). Path map: [docs/zentao-rest-apis.md](./docs/zentao-rest-apis.md). Run `zqq-zentao -h` for the full command list.
 
 `--backend` overrides `ZENTAO_BACKEND`. For `auto`: prefer rest when a token exists (env or config file), otherwise web; rest-only / web-only commands force that backend. `login` with `auto` performs both Web and REST credential exchange.
 
@@ -132,10 +150,11 @@ src/                 # installed as package zqq_zentao_cli; console: zqq-zentao
   capabilities.py
   protocol.py
   web/               # Cookie + PATHINFO
-  rest/              # Token + /api.php/v1
+  rest/              # Token + /api.php/v1 (incl. resources.py read-only registry)
   services/
 docs/
-  zentao-apis.md     # Web API notes
+  zentao-apis.md      # Web PATHINFO notes
+  zentao-rest-apis.md # REST API v1 (from 22.3 source)
 LICENSE              # MIT
 ```
 

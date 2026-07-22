@@ -8,7 +8,11 @@ from typing import Any
 from urllib.parse import quote
 
 from ..config import LOGIN_HINT, insecure_ssl, load_profile, try_resolve_password
+from .resources import RESOURCES, Resource
 from .session import RestSession
+
+# Scope flag priority when multiple are set (first wins).
+_SCOPE_ORDER = ("product", "project", "execution", "program", "lib")
 
 
 def _user_field(val: Any) -> str | None:
@@ -256,3 +260,115 @@ class RestClient:
 
     def edit_comment(self, action_id: str | int, comment: str) -> dict[str, Any]:
         raise SystemExit("comment.edit requires --backend web")
+
+    def _resolve_resource(self, name: str) -> Resource:
+        res = RESOURCES.get(name)
+        if res is None:
+            raise SystemExit(f"Unknown REST resource: {name}")
+        return res
+
+    def _pick_scope(
+        self, res: Resource, scopes: dict[str, str | int | None] | None
+    ) -> tuple[str, str] | None:
+        """Return (scope_name, scope_id) or None."""
+        if not scopes:
+            return None
+        for name in _SCOPE_ORDER:
+            if name not in res.scopes:
+                continue
+            val = scopes.get(name)
+            if val is None or val == "":
+                continue
+            return name, str(val)
+        # any other declared scope
+        for name in res.scopes:
+            val = scopes.get(name) if scopes else None
+            if val is None or val == "":
+                continue
+            return name, str(val)
+        return None
+
+    def list_resource(
+        self,
+        name: str,
+        *,
+        page: int = 1,
+        limit: int = 50,
+        scopes: dict[str, str | int | None] | None = None,
+        path_param: str | None = None,
+        query: dict[str, str] | None = None,
+    ) -> dict[str, Any]:
+        """Generic GET list for a registry resource."""
+        res = self._resolve_resource(name)
+        picked = self._pick_scope(res, scopes)
+        if res.require_scope and not picked:
+            needed = ", ".join(f"--{s}" for s in res.scopes)
+            raise SystemExit(f"{res.list_cmd or name} requires one of: {needed}")
+        if res.required_query:
+            q = query or {}
+            missing = [k for k in res.required_query if not q.get(k)]
+            if missing:
+                flags = ", ".join(f"--{k}" for k in missing)
+                raise SystemExit(f"{res.list_cmd or name} requires: {flags}")
+
+        if picked:
+            scope_name, scope_id = picked
+            path = res.scopes[scope_name].format(id=quote(scope_id, safe=""))
+        elif res.path_param:
+            if not path_param:
+                raise SystemExit(f"{res.list_cmd or name} requires <{res.path_param}>")
+            if not res.list_path:
+                raise SystemExit(f"Resource {name} has no list_path")
+            path = res.list_path.format(param=quote(str(path_param), safe=""))
+        elif res.list_path:
+            path = res.list_path
+        else:
+            needed = ", ".join(f"--{s}" for s in res.scopes) or "(scope)"
+            raise SystemExit(f"{res.list_cmd or name} requires one of: {needed}")
+
+        q: dict[str, str] = dict(query or {})
+        if res.paginated:
+            q.setdefault("page", str(page))
+            q.setdefault("limit", str(limit))
+
+        data = self._get(path, query=q or None)
+        if res.list_key:
+            rows = _extract_named_list(data, res.list_key)
+            # groups etc. may return a bare list
+            if not rows and isinstance(data, list):
+                rows = [x for x in data if isinstance(x, dict)]
+            meta = data if isinstance(data, dict) else {}
+            out: dict[str, Any] = {
+                res.list_key: rows,
+                "backend": self.backend,
+            }
+            if res.paginated:
+                out["page"] = meta.get("page", page)
+                out["total"] = meta.get("total", len(rows))
+                out["limit"] = meta.get("limit", limit)
+            elif isinstance(data, dict):
+                for k, v in data.items():
+                    if k != res.list_key:
+                        out.setdefault(k, v)
+            return out
+
+        if isinstance(data, dict):
+            return {**data, "backend": self.backend}
+        return {"data": data, "backend": self.backend}
+
+    def get_resource(self, name: str, resource_id: str | int) -> dict[str, Any]:
+        """Generic GET detail for a registry resource."""
+        res = self._resolve_resource(name)
+        if not res.detail_path:
+            raise SystemExit(f"Resource {name} has no detail endpoint")
+        path = res.detail_path.format(id=quote(str(resource_id), safe=""))
+        data = self._get(path)
+        if res.detail_keys:
+            entity = _unwrap_entity(data, *res.detail_keys)
+            out = dict(entity) if isinstance(entity, dict) else {"value": entity}
+        elif isinstance(data, dict):
+            out = dict(data)
+        else:
+            out = {"data": data}
+        out["backend"] = self.backend
+        return out
