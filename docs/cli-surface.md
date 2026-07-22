@@ -2,7 +2,7 @@
 
 本文档是 **zqq-zentao** 的目标命令面与产品边界。实现以本文为准；与当前代码不一致处标为「待实现」。
 
-接手开发请同时阅读 [handoff.md](./handoff.md)（待办勾选、已知坑、建议下一刀）。
+接手开发请同时阅读 [handoff.md](./handoff.md)（待办勾选、已知坑、建议下一刀）与 [channel-matrix.md](./channel-matrix.md)（REST vs Web 场景矩阵）。
 
 ## 定位
 
@@ -28,6 +28,7 @@
 - REST 要强制 scope / 过滤失效 / 「我的」列表 → **Web PATHINFO + zin dtable**
 - 写操作：REST 有稳定 POST/PUT 则用 REST；否则走 Web 表单（与 `comment` 同模式）
 - `capabilities.py` 声明每条能力的 `web` / `rest`；`auto` 按能力强制或启发式选择
+- 场景级对照与「如何继续挖缺口」见 [channel-matrix.md](./channel-matrix.md)
 
 ---
 

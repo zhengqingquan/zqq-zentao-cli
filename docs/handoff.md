@@ -1,6 +1,6 @@
 # 交接：待办与现状（handoff）
 
-面向接手开发 / Agent：本文只写 **还要做什么** 和 **怎么接着干**。完整命令面契约见 [cli-surface.md](./cli-surface.md)。
+面向接手开发 / Agent：本文只写 **还要做什么** 和 **怎么接着干**。完整命令面契约见 [cli-surface.md](./cli-surface.md)；**REST vs Web 何时用哪边**见 [channel-matrix.md](./channel-matrix.md)。
 
 **仓库**：`zqq-zentao-cli`，命令入口 `zqq-zentao`（勿与官方 npm `zentao` 混淆）。  
 **更新日期**：2026-07-23  
@@ -17,7 +17,7 @@
 | 4 | **本工具自建 CRUD**，不推给官方 CLI |
 | 5 | **不限本人**：查/改他人数据用范围列表 + 过滤；`my-*` 仅当前用户快捷入口 |
 
-通道：REST 优先；「我的」/备注/REST 难用时走 Web PATHINFO + zin dtable。能力矩阵在 `src/capabilities.py`。
+通道：REST 优先；「我的」/备注/REST 难用时走 Web PATHINFO + zin dtable。能力矩阵在 `src/capabilities.py`；场景对照表见 [channel-matrix.md](./channel-matrix.md)。
 
 ---
 
@@ -56,7 +56,7 @@
 
 ### P1 — 核心写（全面操作的关键）
 
-优先 REST（见 `docs/zentao-rest-apis.md`）；不通再 Web 表单（学 `comment`）。
+优先 REST（见 `docs/zentao-rest-apiv1.md`）；不通再 Web 表单（学 `comment`）。
 
 - [x] **bug**：`create` / `update` / `delete` + `confirm` / `resolve` / `close` / `activate` / `assign`（REST）
 - [x] **task**：`create` / `update` / `delete` + `start` / `finish` / `close` / `activate` / `assign`（REST）
@@ -143,7 +143,8 @@
 | `src/web/bugs.py` / `web/tasks.py` / `web/comments.py` | Web 拉页与解析 |
 | `src/web/parse.py` | zin / dtable |
 | `docs/cli-surface.md` | 命令面契约 |
-| `docs/zentao-apis.md` / `zentao-rest-apis.md` | 接口说明 |
+| `docs/channel-matrix.md` | REST vs Web 场景矩阵与挖缺口方法 |
+| `docs/zentao-apis.md` / `zentao-rest-apiv1.md` / `zentao-rest-apiv2.md` | Web / REST v1 / REST v2 接口说明 |
 
 测试：`python -m pytest`（无第三方依赖；勿对真实禅道写破坏性测试除非有隔离环境）。
 
@@ -168,3 +169,4 @@
 | 2026-07-23 | P3：Web my-\*/execution 翻页拉全；重写「已完成 / 优化表 / 下一刀」 |
 | 2026-07-23 | P1：story REST 写与状态动作；下一刀改为服务端过滤 / P2 |
 | 2026-07-23 | P3：bugs/stories 映射 REST browseType（本人/状态）；查他人仍客户端 |
+| 2026-07-23 | 新增 docs/channel-matrix.md（REST vs Web 矩阵 + 挖缺口方法） |
