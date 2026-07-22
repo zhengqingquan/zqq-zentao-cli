@@ -15,15 +15,17 @@
 
 ```bash
 pip install -e .
-zentao -h
+zqq-zentao -h
 ```
+
+安装后命令为 **`zqq-zentao`**（包名 `zqq-zentao-cli`），不占用官方 `zentao`。
 
 ## 配置与登录
 
 推荐与官方 CLI 一样显式登录（凭证写入 `~/.config/zentao/zentao.json`，**不存密码**）：
 
 ```bash
-zentao login -s https://zentao.example.com -u your_account -p your_password
+zqq-zentao login -s https://zentao.example.com -u your_account -p your_password
 ```
 
 | 参数 | 说明 | 环境变量回退 |
@@ -37,7 +39,7 @@ zentao login -s https://zentao.example.com -u your_account -p your_password
 - `webCookies`：Web 会话 Cookie（本工具字段；官方 CLI 会忽略）
 - `token`：REST Token（与官方字段一致）
 
-也可仅用环境变量；未登录时业务命令会提示执行 `zentao login`。
+也可仅用环境变量；未登录时业务命令会提示执行 `zqq-zentao login`。
 
 | 变量 | 说明 | 官方 zentao-cli |
 |------|------|-----------------|
@@ -57,12 +59,12 @@ PowerShell 示例：
 $env:ZENTAO_URL = "https://zentao.example.com"
 $env:ZENTAO_ACCOUNT = "your_account"
 $env:ZENTAO_PASSWORD = "your_password"
-zentao login
+zqq-zentao login
 ```
 
 鉴权行为简述：
 
-- **Web**：优先用缓存 `webCookies`；失效且有 `ZENTAO_PASSWORD` 时自动重登并写回；否则提示 `zentao login`
+- **Web**：优先用缓存 `webCookies`；失效且有 `ZENTAO_PASSWORD` 时自动重登并写回；否则提示 `zqq-zentao login`
 - **REST**：`ZENTAO_TOKEN` → 配置文件 `token` → 密码换票
 
 **不要**在日志或对话中打印 Cookie、密码、Token。
@@ -70,15 +72,15 @@ zentao login
 ## 用法
 
 ```bash
-zentao login -s https://zentao.example.com -u admin -p secret
-zentao whoami
-zentao --backend rest whoami
-zentao my-tasks
-zentao tasks --execution 1664
-zentao task 39973
-zentao comment list task 39973
-zentao comment add task 39973 "备注内容"
-zentao comment edit 1063694 "新备注"
+zqq-zentao login -s https://zentao.example.com -u admin -p secret
+zqq-zentao whoami
+zqq-zentao --backend rest whoami
+zqq-zentao my-tasks
+zqq-zentao tasks --execution 1664
+zqq-zentao task 39973
+zqq-zentao comment list task 39973
+zqq-zentao comment add task 39973 "备注内容"
+zqq-zentao comment edit 1063694 "新备注"
 ```
 
 | 命令 | 说明 | 后端 |
@@ -95,7 +97,7 @@ zentao comment edit 1063694 "新备注"
 ## 目录结构
 
 ```
-src/                 # 安装后映射为包 zqq_zentao_cli，入口命令：zentao
+src/                 # 安装后映射为包 zqq_zentao_cli，入口命令：zqq-zentao
   cli.py
   config.py
   factory.py

@@ -4,19 +4,19 @@
 ZenTao dual-backend CLI (Web PATHINFO / REST Token).
 
 Auth:
-  - zentao login -s <url> -u <account> -p <password>
+  - zqq-zentao login -s <url> -u <account> -p <password>
   - Or env ZENTAO_SERVER/ZENTAO_URL, ZENTAO_ACCOUNT, ZENTAO_PASSWORD / ZENTAO_TOKEN
   - Caches webCookies + token in ~/.config/zentao/zentao.json (no password on disk)
   - Backend: --backend / ZENTAO_BACKEND = web|rest|auto
 
 Usage:
-  zentao login -s https://zentao.example.com -u admin -p secret
-  zentao whoami
-  zentao --backend rest whoami
-  zentao my-tasks
-  zentao tasks --execution 1664
-  zentao task 39973
-  zentao comment list task 39973
+  zqq-zentao login -s https://zentao.example.com -u admin -p secret
+  zqq-zentao whoami
+  zqq-zentao --backend rest whoami
+  zqq-zentao my-tasks
+  zqq-zentao tasks --execution 1664
+  zqq-zentao task 39973
+  zqq-zentao comment list task 39973
 
 Never print Cookie / password / Token.
 """
@@ -69,7 +69,7 @@ def print_comment_list(data: list[Any]) -> None:
 
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
-        prog="zentao",
+        prog="zqq-zentao",
         description="ZenTao dual-backend client (Web Cookie / REST Token)",
     )
     p.add_argument(

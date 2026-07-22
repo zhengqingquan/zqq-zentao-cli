@@ -95,7 +95,7 @@ class RestSession:
         """
         Authenticate. Returns the token in use.
         prefer_stored: try env/profile token before password exchange.
-        force_password: always exchange password (used by `zentao login`).
+        force_password: always exchange password (used by `zqq-zentao login`).
         """
         self.account = account
         if not force_password and prefer_stored:

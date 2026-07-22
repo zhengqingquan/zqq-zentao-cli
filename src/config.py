@@ -14,7 +14,7 @@ from typing import Any, Literal
 
 CONFIG_PATH = Path.home() / ".config" / "zentao" / "zentao.json"
 USER_AGENT = "zentao-operator/0.3 (+python; web+rest)"
-LOGIN_HINT = "Run: zentao login -s <url> -u <account> -p <password>"
+LOGIN_HINT = "Run: zqq-zentao login -s <url> -u <account> -p <password>"
 
 Backend = Literal["web", "rest", "auto"]
 

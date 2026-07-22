@@ -8,7 +8,7 @@ requires-python = ">=3.10"
 dependencies = []
 
 [project.scripts]
-zentao = "zqq_zentao_cli.cli:main"
+zqq-zentao = "zqq_zentao_cli.cli:main"
 
 [build-system]
 requires = ["setuptools>=61"]

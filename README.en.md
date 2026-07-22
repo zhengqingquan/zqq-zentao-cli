@@ -15,15 +15,17 @@ ZenTao dual-backend CLI: **Web (PATHINFO + Cookie)** and **REST (Token)**.
 
 ```bash
 pip install -e .
-zentao -h
+zqq-zentao -h
 ```
+
+After install the console command is **`zqq-zentao`** (package `zqq-zentao-cli`); it does not take over the official `zentao` name.
 
 ## Config & login
 
 Preferred (same idea as official CLI). Credentials go to `~/.config/zentao/zentao.json` (**password is never stored**):
 
 ```bash
-zentao login -s https://zentao.example.com -u your_account -p your_password
+zqq-zentao login -s https://zentao.example.com -u your_account -p your_password
 ```
 
 | Flag | Description | Env fallback |
@@ -37,7 +39,7 @@ On success, the current profile stores:
 - `webCookies` — Web session cookies (this tool; ignored by official CLI)
 - `token` — REST token (same field as official CLI)
 
-Env-only setups still work; unauthenticated commands hint you to run `zentao login`.
+Env-only setups still work; unauthenticated commands hint you to run `zqq-zentao login`.
 
 | Variable | Description | Official zentao-cli |
 |----------|-------------|---------------------|
@@ -57,12 +59,12 @@ PowerShell example:
 $env:ZENTAO_URL = "https://zentao.example.com"
 $env:ZENTAO_ACCOUNT = "your_account"
 $env:ZENTAO_PASSWORD = "your_password"
-zentao login
+zqq-zentao login
 ```
 
 Auth behavior:
 
-- **Web**: prefer cached `webCookies`; on expiry, re-login with `ZENTAO_PASSWORD` if set and rewrite; otherwise hint `zentao login`
+- **Web**: prefer cached `webCookies`; on expiry, re-login with `ZENTAO_PASSWORD` if set and rewrite; otherwise hint `zqq-zentao login`
 - **REST**: `ZENTAO_TOKEN` → profile `token` → password exchange
 
 **Never** print Cookie, password, or Token in logs or chat.
@@ -70,15 +72,15 @@ Auth behavior:
 ## Usage
 
 ```bash
-zentao login -s https://zentao.example.com -u admin -p secret
-zentao whoami
-zentao --backend rest whoami
-zentao my-tasks
-zentao tasks --execution 1664
-zentao task 39973
-zentao comment list task 39973
-zentao comment add task 39973 "comment text"
-zentao comment edit 1063694 "updated comment"
+zqq-zentao login -s https://zentao.example.com -u admin -p secret
+zqq-zentao whoami
+zqq-zentao --backend rest whoami
+zqq-zentao my-tasks
+zqq-zentao tasks --execution 1664
+zqq-zentao task 39973
+zqq-zentao comment list task 39973
+zqq-zentao comment add task 39973 "comment text"
+zqq-zentao comment edit 1063694 "updated comment"
 ```
 
 | Command | Description | Backend |
@@ -95,7 +97,7 @@ zentao comment edit 1063694 "updated comment"
 ## Layout
 
 ```
-src/                 # installed as package zqq_zentao_cli; console: zentao
+src/                 # installed as package zqq_zentao_cli; console: zqq-zentao
   cli.py
   config.py
   factory.py
