@@ -87,7 +87,7 @@
 
 - [x] Web「我的」注册表化（`web/my_pages.py` + `fetch_dtable_list`；可继续扩 epic/requirement 等）
 - [ ] bugs/stories 过滤：尽量服务端搜，避免「拉全量再滤」过慢
-- [ ] Web 列表大 `recPerPage` / 翻页拉全
+- [x] Web 列表大 `recPerPage` / 翻页拉全（`fetch_dtable_list_paginated`；my-* 与 execution tasks 默认 200/页）
 - [ ] 双通道失败降级（可选）
 - [ ] 用户表本地短缓存（服务姓名解析）
 
@@ -143,7 +143,7 @@
 
 ## 6. 建议下一刀（给 Agent 的一句话）
 
-> P1 bug/task 写已落地（REST，离线测）。下一刀：**story 写与状态动作**，或补 Web 翻页拉全 / 用户缓存（P3）；联调真实禅道前用 `--yes` 在隔离环境验证。
+> Web my-* / execution 列表已翻页拉全。下一刀：**story 写与状态动作**，或用户缓存（P3）；联调真实禅道写操作前用 `--yes` 在隔离环境验证。
 
 ---
 

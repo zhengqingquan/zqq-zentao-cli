@@ -8,7 +8,6 @@ from typing import Any
 
 from ..task_shape import summarize_task
 from .comments import list_comments
-from .lists import fetch_dtable_list
 from .my_pages import fetch_my_page, my_page_by_cmd
 from .parse import looks_auth_fail, parse_task_view_html, strip_tags, zin_main_html
 from .session import Session
@@ -26,11 +25,22 @@ def fetch_my_tasks(
 
 
 def fetch_execution_tasks(sess: Session, execution_id: str | int) -> list[dict[str, Any]]:
-    return fetch_dtable_list(
+    from .lists import fetch_dtable_list_paginated
+
+    eid = str(execution_id)
+
+    def path_for_page(page_id: int, size: int) -> str:
+        # execution::task($executionID, $browseType, $param, $orderBy, $recTotal, $recPerPage, $pageID, ...)
+        return (
+            f"/execution-task-{eid}-unclosed-0-id_desc-0-{size}-{page_id}.html?zin=1"
+        )
+
+    return fetch_dtable_list_paginated(
         sess,
-        f"/execution-task-{execution_id}.html?zin=1",
+        path_for_page,
         label="execution tasks",
         summarize=summarize_task,
+        rec_per_page=200,
     )
 
 

@@ -18,7 +18,7 @@ from ..my_shape import (
     summarize_todo,
 )
 from ..task_shape import summarize_task
-from .lists import fetch_dtable_list
+from .lists import fetch_dtable_list_paginated
 from .session import Session
 
 ScopeName = Literal["work", "contribute", "todo"]
@@ -243,11 +243,36 @@ def resolve_browse(
     )
 
 
-def build_path(page: MyPage, scope: ScopeName, browse_type: str) -> str:
-    """Build PATHINFO URL with zin=1."""
+def build_path(
+    page: MyPage,
+    scope: ScopeName,
+    browse_type: str,
+    *,
+    page_id: int = 1,
+    rec_per_page: int = 200,
+    param: int | str = 0,
+    order_by: str = "id_desc",
+    rec_total: int = 0,
+) -> str:
+    """Build PATHINFO URL with zin=1 and pager args (ZenTao 22.3).
+
+    work/contribute → my::{work|contribute} → module method pager:
+      /my-{scope}-{mode}-{browseType}-{param}-{orderBy}-{recTotal}-{recPerPage}-{pageID}.html
+    todo → my::todo:
+      /my-todo-{browseType}-{userID}-{status}-{orderBy}-{recTotal}-{recPerPage}-{pageID}.html
+    """
+    page_id = max(1, int(page_id))
+    rec_per_page = max(1, int(rec_per_page))
     if scope == "todo":
-        return f"/my-todo-{browse_type}.html?zin=1"
-    return f"/my-{scope}-{page.mode}-{browse_type}.html?zin=1"
+        # userID empty; status=all
+        return (
+            f"/my-todo-{browse_type}--all-{order_by}-"
+            f"{rec_total}-{rec_per_page}-{page_id}.html?zin=1"
+        )
+    return (
+        f"/my-{scope}-{page.mode}-{browse_type}-{param}-{order_by}-"
+        f"{rec_total}-{rec_per_page}-{page_id}.html?zin=1"
+    )
 
 
 def fetch_my_page(
@@ -256,16 +281,28 @@ def fetch_my_page(
     *,
     browse_type: str | None = None,
     scope: str | None = None,
+    rec_per_page: int = 200,
 ) -> list[dict[str, Any]]:
     resolved_scope, resolved_type = resolve_browse(
         page, browse_type=browse_type, scope=scope
     )
-    path = build_path(page, resolved_scope, resolved_type)
-    return fetch_dtable_list(
+    label = f"{page.cmd} ({resolved_scope}/{resolved_type})"
+
+    def path_for_page(page_id: int, size: int) -> str:
+        return build_path(
+            page,
+            resolved_scope,
+            resolved_type,
+            page_id=page_id,
+            rec_per_page=size,
+        )
+
+    return fetch_dtable_list_paginated(
         sess,
-        path,
-        label=f"{page.cmd} ({resolved_scope}/{resolved_type})",
+        path_for_page,
+        label=label,
         summarize=page.summarize,
+        rec_per_page=rec_per_page,
     )
 
 

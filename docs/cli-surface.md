@@ -261,7 +261,7 @@ zqq-zentao comment list|add|edit …
 
 - ✅ Web `my-*` 注册表化（`web/my_pages.py`）
 - 双通道失败降级（可选）
-- 分页：Web 大 `recPerPage` / 翻页拉全
+- 分页：Web 大 `recPerPage` / 翻页拉全（my-*、execution tasks 已实现）
 - 用户表本地短缓存（姓名解析）
 
 ---

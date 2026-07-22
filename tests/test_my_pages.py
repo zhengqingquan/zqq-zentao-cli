@@ -42,20 +42,23 @@ def test_resolve_invalid_type() -> None:
         resolve_browse(page, browse_type="nope")
 
 
-def test_todo_path_and_types() -> None:
-    page = my_page_by_cmd("my-todos")
-    assert page is not None
-    scope, browse = resolve_browse(page, browse_type="today")
-    assert (scope, browse) == ("todo", "today")
-    assert build_path(page, scope, browse) == "/my-todo-today.html?zin=1"
-
-
 def test_work_path() -> None:
     page = my_page_by_cmd("my-stories")
     assert page is not None
     assert (
         build_path(page, "work", "assignedTo")
-        == "/my-work-story-assignedTo.html?zin=1"
+        == "/my-work-story-assignedTo-0-id_desc-0-200-1.html?zin=1"
+    )
+
+
+def test_todo_path_and_types() -> None:
+    page = my_page_by_cmd("my-todos")
+    assert page is not None
+    scope, browse = resolve_browse(page, browse_type="today")
+    assert (scope, browse) == ("todo", "today")
+    assert (
+        build_path(page, scope, browse)
+        == "/my-todo-today--all-id_desc-0-200-1.html?zin=1"
     )
 
 
