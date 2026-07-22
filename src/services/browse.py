@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""REST browse helpers (users / projects / programs / executions / departments)."""
+"""Browse helpers — thin wrappers over ZenTaoClient (REST methods now use registry)."""
 
 from __future__ import annotations
 

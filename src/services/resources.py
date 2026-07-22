@@ -55,15 +55,12 @@ def list_projects_scoped(
     product: str | None = None,
 ) -> dict[str, Any]:
     """Existing projects command with optional --program / --product scopes."""
-    rest = _as_rest(client)
-    if program or product:
-        return rest.list_resource(
-            "projects",
-            page=page,
-            limit=limit,
-            scopes={"program": program, "product": product},
-        )
-    return rest.list_projects(page=page, limit=limit)
+    return _as_rest(client).list_resource(
+        "projects",
+        page=page,
+        limit=limit,
+        scopes={"program": program, "product": product},
+    )
 
 
 def scopes_from_args(args: Any, res: Resource) -> dict[str, str | int | None]:

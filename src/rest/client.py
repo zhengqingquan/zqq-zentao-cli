@@ -68,10 +68,6 @@ def _extract_named_list(data: Any, *keys: str) -> list[dict[str, Any]]:
     return []
 
 
-def _extract_task_list(data: Any) -> list[dict[str, Any]]:
-    return _extract_named_list(data, "tasks")
-
-
 def _unwrap_entity(data: Any, *keys: str) -> dict[str, Any]:
     if not isinstance(data, dict):
         raise SystemExit(f"Expected object payload, got {type(data).__name__}")
@@ -148,8 +144,8 @@ class RestClient:
     def my_tasks(self) -> list[dict[str, Any]]:
         """Prefer GET /tasks filtered by assignee; /users/{account}/tasks is 404 on many servers."""
         account = self.profile["account"]
-        data = self._get("/tasks", query={"page": "1", "limit": "200"})
-        rows = _extract_task_list(data)
+        data = self.list_resource("tasks", page=1, limit=200)
+        rows = data.get("tasks") or []
         mine = [x for x in rows if _assigned_account(x) == account]
         # Some servers already scope /tasks to current user; if filter empties a non-empty list, keep all.
         if rows and not mine:
@@ -157,100 +153,49 @@ class RestClient:
         return [summarize_rest_task(x) for x in mine]
 
     def list_tasks(self, *, page: int = 1, limit: int = 100) -> dict[str, Any]:
-        data = self._get("/tasks", query={"page": str(page), "limit": str(limit)})
-        rows = _extract_task_list(data)
-        meta = data if isinstance(data, dict) else {}
+        data = self.list_resource("tasks", page=page, limit=limit)
+        rows = data.get("tasks") or []
         return {
-            "page": meta.get("page", page),
-            "total": meta.get("total", len(rows)),
-            "limit": meta.get("limit", limit),
+            **data,
             "tasks": [summarize_rest_task(x) for x in rows],
-            "backend": self.backend,
         }
 
     def execution_tasks(self, execution_id: str | int) -> list[dict[str, Any]]:
-        data = self._get(
-            f"/executions/{execution_id}/tasks",
-            query={"page": "1", "limit": "200"},
+        data = self.list_resource(
+            "tasks",
+            page=1,
+            limit=200,
+            scopes={"execution": execution_id},
         )
-        rows = _extract_task_list(data)
-        if not rows and data:
+        rows = data.get("tasks") or []
+        if not rows:
             raise SystemExit(f"Failed to parse REST execution task list. raw={data!r}"[:200])
         return [summarize_rest_task(x) for x in rows]
 
     def get_task(self, task_id: str | int) -> dict[str, Any]:
-        data = self._get(f"/tasks/{task_id}")
-        task = _unwrap_entity(data, "task")
-        out = dict(task)
-        if isinstance(data, dict) and "actions" in data:
-            out["actions"] = data["actions"]
-        out["backend"] = self.backend
-        return out
+        return self.get_resource("tasks", task_id)
 
     def list_users(self, *, page: int = 1, limit: int = 50) -> dict[str, Any]:
-        data = self._get("/users", query={"page": str(page), "limit": str(limit)})
-        rows = _extract_named_list(data, "users")
-        meta = data if isinstance(data, dict) else {}
-        return {
-            "page": meta.get("page", page),
-            "total": meta.get("total", len(rows)),
-            "limit": meta.get("limit", limit),
-            "users": rows,
-            "backend": self.backend,
-        }
+        return self.list_resource("users", page=page, limit=limit)
 
     def get_user(self, account: str) -> dict[str, Any]:
-        data = self._get(f"/users/{quote(account, safe='')}")
-        user = _unwrap_entity(data, "user", "profile")
-        return {**user, "backend": self.backend}
+        return self.get_resource("users", account)
 
     def list_projects(self, *, page: int = 1, limit: int = 50) -> dict[str, Any]:
-        data = self._get("/projects", query={"page": str(page), "limit": str(limit)})
-        rows = _extract_named_list(data, "projects")
-        meta = data if isinstance(data, dict) else {}
-        return {
-            "page": meta.get("page", page),
-            "total": meta.get("total", len(rows)),
-            "limit": meta.get("limit", limit),
-            "projects": rows,
-            "backend": self.backend,
-        }
+        return self.list_resource("projects", page=page, limit=limit)
 
     def list_programs(self, *, page: int = 1, limit: int = 50) -> dict[str, Any]:
-        data = self._get("/programs", query={"page": str(page), "limit": str(limit)})
-        rows = _extract_named_list(data, "programs")
-        meta = data if isinstance(data, dict) else {}
-        return {
-            "page": meta.get("page", page),
-            "total": meta.get("total", len(rows)),
-            "limit": meta.get("limit", limit),
-            "programs": rows,
-            "backend": self.backend,
-        }
+        return self.list_resource("programs", page=page, limit=limit)
 
     def list_executions(self, *, page: int = 1, limit: int = 50) -> dict[str, Any]:
-        data = self._get("/executions", query={"page": str(page), "limit": str(limit)})
-        rows = _extract_named_list(data, "executions")
-        meta = data if isinstance(data, dict) else {}
-        return {
-            "page": meta.get("page", page),
-            "total": meta.get("total", len(rows)),
-            "limit": meta.get("limit", limit),
-            "executions": rows,
-            "backend": self.backend,
-        }
+        return self.list_resource("executions", page=page, limit=limit)
 
     def get_execution(self, execution_id: str | int) -> dict[str, Any]:
-        data = self._get(f"/executions/{execution_id}")
-        exe = _unwrap_entity(data, "execution")
-        return {**exe, "backend": self.backend}
+        return self.get_resource("executions", execution_id)
 
     def list_departments(self) -> dict[str, Any]:
-        data = self._get("/departments")
-        rows = _extract_named_list(data, "departments")
-        if not rows and isinstance(data, list):
-            rows = [x for x in data if isinstance(x, dict)]
-        return {"departments": rows, "backend": self.backend}
+        return self.list_resource("departments")
+
 
     def list_comments(self, object_type: str, object_id: str | int) -> list[Any]:
         raise SystemExit("comment.list requires --backend web")
@@ -370,5 +315,10 @@ class RestClient:
             out = dict(data)
         else:
             out = {"data": data}
+        # Preserve sibling fields (e.g. actions next to nested task).
+        if isinstance(data, dict) and isinstance(out, dict):
+            for key in ("actions",):
+                if key in data and key not in out:
+                    out[key] = data[key]
         out["backend"] = self.backend
         return out

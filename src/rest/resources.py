@@ -151,22 +151,41 @@ _add(
     )
 )
 
-# --- org / structure ---
+# --- org / structure (incl. legacy CLI cmds in EXISTING_CMDS) ---
 _add(
     Resource(
-        key="department",
-        help="Department detail (REST)",
-        detail_cmd="department",
-        detail_path="/departments/{id}",
-        detail_keys=("department",),
+        key="users",
+        help="User list/detail (REST)",
+        list_cmd="users",
+        detail_cmd="user",
+        list_path="/users",
+        detail_path="/users/{id}",
+        list_key="users",
+        detail_keys=("user", "profile"),
     )
 )
 _add(
     Resource(
-        key="program",
-        help="Program detail (REST)",
+        key="departments",
+        help="Department list/detail (REST)",
+        list_cmd="departments",
+        detail_cmd="department",
+        list_path="/departments",
+        detail_path="/departments/{id}",
+        list_key="departments",
+        detail_keys=("department",),
+        paginated=False,
+    )
+)
+_add(
+    Resource(
+        key="programs",
+        help="Program list/detail (REST)",
+        list_cmd="programs",
         detail_cmd="program",
+        list_path="/programs",
         detail_path="/programs/{id}",
+        list_key="programs",
         detail_keys=("program",),
     )
 )
@@ -185,24 +204,44 @@ _add(
 )
 _add(
     Resource(
-        key="project",
-        help="Project detail (REST)",
-        detail_cmd="project",
-        detail_path="/projects/{id}",
-        detail_keys=("project",),
-    )
-)
-# projects list already exists; registry entry for scoped list helpers / docs
-_add(
-    Resource(
         key="projects",
-        help="Project list (REST)",
+        help="Project list/detail (REST)",
+        list_cmd="projects",
+        detail_cmd="project",
         list_path="/projects",
+        detail_path="/projects/{id}",
         list_key="projects",
+        detail_keys=("project",),
         scopes={
             "program": "/programs/{id}/projects",
             "product": "/products/{id}/projects",
         },
+    )
+)
+_add(
+    Resource(
+        key="executions",
+        help="Execution list/detail (REST)",
+        list_cmd="executions",
+        detail_cmd="execution",
+        list_path="/executions",
+        detail_path="/executions/{id}",
+        list_key="executions",
+        detail_keys=("execution",),
+        scopes={"project": "/projects/{id}/executions"},
+    )
+)
+_add(
+    Resource(
+        key="tasks",
+        help="Task list/detail (REST)",
+        list_cmd="tasks",
+        detail_cmd="task",
+        list_path="/tasks",
+        detail_path="/tasks/{id}",
+        list_key="tasks",
+        detail_keys=("task",),
+        scopes={"execution": "/executions/{id}/tasks"},
     )
 )
 _add(
