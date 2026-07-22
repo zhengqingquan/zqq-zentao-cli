@@ -6,13 +6,13 @@ from __future__ import annotations
 
 from typing import Any
 
+from ..task_shape import summarize_task
 from .comments import list_comments
 from .parse import (
     looks_auth_fail,
     parse_dtable_rows,
     parse_task_view_html,
     strip_tags,
-    summarize_task_row,
     zin_main_html,
 )
 from .session import Session
@@ -31,7 +31,7 @@ def fetch_my_tasks(sess: Session) -> list[dict[str, Any]]:
             f"Failed to parse my-tasks list HTTP {r['status']} (need zin dtable). "
             f"raw[:120]={r['raw'][:120]!r}"
         )
-    return [summarize_task_row(x) for x in rows]
+    return [summarize_task(x) for x in rows]
 
 
 def fetch_execution_tasks(sess: Session, execution_id: str | int) -> list[dict[str, Any]]:
@@ -46,7 +46,7 @@ def fetch_execution_tasks(sess: Session, execution_id: str | int) -> list[dict[s
         raise SystemExit(
             f"Failed to parse execution task list HTTP {r['status']}. raw[:120]={r['raw'][:120]!r}"
         )
-    return [summarize_task_row(x) for x in rows]
+    return [summarize_task(x) for x in rows]
 
 
 def fetch_task(sess: Session, task_id: str | int) -> dict[str, Any]:

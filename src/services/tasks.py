@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Task domain operations (delegates to ZenTaoClient)."""
+"""Task operations via ZenTaoClient (shape: task_shape; fetch: web/rest tasks)."""
 
 from __future__ import annotations
 

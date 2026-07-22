@@ -110,30 +110,6 @@ def is_write_success(data: Any) -> bool:
     )
 
 
-def summarize_task_row(row: dict[str, Any]) -> dict[str, Any]:
-    return {
-        "id": row.get("id"),
-        "name": row.get("name"),
-        "status": row.get("status") or row.get("rawStatus"),
-        "pri": row.get("pri"),
-        "deadline": row.get("deadline"),
-        "assignedTo": row.get("assignedTo"),
-        "assignedToRealName": row.get("assignedToRealName"),
-        "execution": row.get("execution") or row.get("executionID"),
-        "executionName": row.get("executionName"),
-        "project": row.get("project"),
-        "projectName": row.get("projectName"),
-        "type": row.get("type"),
-        "progress": row.get("progress"),
-        "consumed": row.get("consumed"),
-        "left": row.get("left"),
-        "estimate": row.get("estimate"),
-        "openedBy": row.get("openedBy"),
-        "openedDate": row.get("openedDate"),
-        "desc": row.get("desc"),
-    }
-
-
 def parse_task_view_html(html: str, task_id: str | int) -> dict[str, Any]:
     html = unescape(html).replace("&quot;", '"')
     out: dict[str, Any] = {"id": int(task_id) if str(task_id).isdigit() else task_id}
