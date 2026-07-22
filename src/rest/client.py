@@ -106,6 +106,9 @@ class RestClient:
         """All tasks assigned to me (canonical rows)."""
         return tasks_api.fetch_my_tasks(self.list_resource, self.profile["account"])
 
+    def my_bugs(self) -> list[dict[str, Any]]:
+        raise SystemExit("my-bugs requires --backend web")
+
     def list_tasks(self, *, page: int = 1, limit: int = 100) -> dict[str, Any]:
         """Paginated my-tasks list (client-side page after full fetch workaround)."""
         out = tasks_api.list_my_tasks(self.list_resource, page=page, limit=limit)

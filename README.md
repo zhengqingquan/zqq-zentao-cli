@@ -113,6 +113,7 @@ zqq-zentao login
 zqq-zentao login -s https://zentao.example.com -u admin -p secret
 zqq-zentao whoami
 zqq-zentao my-tasks
+zqq-zentao my-bugs
 zqq-zentao tasks
 zqq-zentao tasks --execution 1664
 zqq-zentao task 39980
@@ -142,6 +143,7 @@ zqq-zentao comment edit 1063694 "新备注"
 | `login` | 登录并缓存 Cookie / Token | web + rest（`auto`） |
 | `whoami` | 当前账号与服务器 | web / rest |
 | `my-tasks` | 指派给我的任务（REST 用 `/tasks` 过滤指派人） | web / rest |
+| `my-bugs` | 指派给我的 Bug（Web：`/my-work-bug-assignedTo.html`） | **仅 web** |
 | `tasks` | REST 任务列表（`--page` / `--limit`） | **仅 rest** |
 | `tasks -e <id>` | 某执行下的任务列表 | web / rest |
 | `task <id>` | 任务详情（REST 返回完整字段） | web / rest |

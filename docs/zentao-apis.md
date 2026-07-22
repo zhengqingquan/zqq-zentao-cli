@@ -43,6 +43,10 @@
 | GET | `/index-app.html` | 应用壳 |
 | GET | `/my.html` | 我的地盘（常 `?zin=1`） |
 | GET | `/my-work-task-assignedTo.html` | 指派给我的任务 |
+| GET | `/my-work-bug-assignedTo.html` | 指派给我的 Bug（`my::work`→`bug`，默认排除已关闭） |
+| GET | `/my-work-bug-openedBy.html` | 由我创建的 Bug |
+| GET | `/my-work-bug-resolvedBy.html` | 由我解决的 Bug |
+| GET | `/my-bug-assignedTo.html` | 同上（直接 `my::bug`，不经 work） |
 | GET | `/execution-task.html` | 执行任务列表入口 |
 | GET | `/execution-task-{executionID}.html` | 指定执行的任务列表 |
 | GET | `/execution-ajaxGetDropMenu-{projectID}-execution-task-.html` | 执行下拉菜单 |

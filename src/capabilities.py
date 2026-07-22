@@ -14,6 +14,7 @@ BackendName = Literal["web", "rest"]
 CAPABILITIES: dict[str, frozenset[BackendName]] = {
     "whoami": frozenset({"web", "rest"}),
     "my-tasks": frozenset({"web", "rest"}),
+    "my-bugs": frozenset({"web"}),
     "tasks": frozenset({"web", "rest"}),
     "tasks.list": frozenset({"rest"}),
     "task": frozenset({"web", "rest"}),

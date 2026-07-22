@@ -113,6 +113,7 @@ Auth behavior:
 zqq-zentao login -s https://zentao.example.com -u admin -p secret
 zqq-zentao whoami
 zqq-zentao my-tasks
+zqq-zentao my-bugs
 zqq-zentao tasks
 zqq-zentao tasks --execution 1664
 zqq-zentao task 39980
@@ -142,6 +143,7 @@ zqq-zentao comment edit 1063694 "updated comment"
 | `login` | Login and cache Cookie / Token | web + rest (`auto`) |
 | `whoami` | Current account and server | web / rest |
 | `my-tasks` | Tasks assigned to me (REST filters `/tasks` by assignee) | web / rest |
+| `my-bugs` | Bugs assigned to me (Web: `/my-work-bug-assignedTo.html`) | **web only** |
 | `tasks` | REST task list (`--page` / `--limit`) | **rest only** |
 | `tasks -e <id>` | Tasks under an execution | web / rest |
 | `task <id>` | Task detail (REST returns full fields) | web / rest |

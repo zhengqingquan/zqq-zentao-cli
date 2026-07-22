@@ -17,6 +17,7 @@ from ..config import (
     save_web_cookies,
     try_resolve_password,
 )
+from . import bugs as bugs_api
 from . import comments as comments_api
 from . import tasks as tasks_api
 from .parse import looks_auth_fail
@@ -115,6 +116,12 @@ class WebClient:
         def _run() -> list[dict[str, Any]]:
             rows = tasks_api.fetch_my_tasks(self._sess)
             return rows
+
+        return self._with_auth_retry(_run)
+
+    def my_bugs(self) -> list[dict[str, Any]]:
+        def _run() -> list[dict[str, Any]]:
+            return bugs_api.fetch_my_bugs(self._sess)
 
         return self._with_auth_retry(_run)
 

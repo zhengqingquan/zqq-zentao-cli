@@ -31,6 +31,7 @@ from .rest.resources import (
     resources_for_cli,
 )
 from .services import auth as auth_svc
+from .services import bugs as bug_svc
 from .services import comments as comment_svc
 from .services import resources as resource_svc
 from .services import tasks as task_svc
@@ -45,6 +46,7 @@ _SCOPE_FLAGS = (
 )
 
 _TASK_FIELDS = ["id", "status", "pri", "deadline", "executionName", "name"]
+_BUG_FIELDS = ["id", "status", "severity", "pri", "productName", "title"]
 
 
 def _normalize_task_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -58,6 +60,22 @@ def _normalize_task_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "deadline": t.get("deadline") or "",
                 "executionName": t.get("executionName") or t.get("execution") or "",
                 "name": t.get("name") or "",
+            }
+        )
+    return out
+
+
+def _normalize_bug_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    out: list[dict[str, Any]] = []
+    for b in rows:
+        out.append(
+            {
+                "id": b.get("id"),
+                "status": b.get("status"),
+                "severity": b.get("severity"),
+                "pri": b.get("pri"),
+                "productName": b.get("productName") or b.get("product") or "",
+                "title": b.get("title") or "",
             }
         )
     return out
@@ -198,6 +216,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     sub.add_parser("whoami", help="Show configured account and server")
     sub.add_parser("my-tasks", help="Tasks assigned to me")
+    sub.add_parser("my-bugs", help="Bugs assigned to me (web only)")
 
     p_tasks = sub.add_parser(
         "tasks",
@@ -321,6 +340,10 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.cmd == "my-tasks":
         emit(_normalize_task_rows(task_svc.my_tasks(client)), is_list=True, fields=_TASK_FIELDS)
+        return 0
+
+    if args.cmd == "my-bugs":
+        emit(_normalize_bug_rows(bug_svc.my_bugs(client)), is_list=True, fields=_BUG_FIELDS)
         return 0
 
     if args.cmd == "tasks":
