@@ -36,9 +36,14 @@ pip-wheel-metadata/
 credentials.json
 secrets.json
 
-# 本地禅道配置（可能含账号）
+# 本地禅道配置（可能含账号 / Token / Cookie）
 .zentao/
+zentao.json
 zentao.local.json
+**/zentao.json
+
+# 运行态 / 大体量无关文件
+*.pid
 
 # HAR / 抓包与脱敏前草稿（常含 Cookie）
 har/

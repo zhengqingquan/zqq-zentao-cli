@@ -34,7 +34,7 @@ def test_merge_payload_flags_win() -> None:
 def test_write_paths() -> None:
     assert bug_create_path(12) == "/products/12/bugs"
     assert bug_action_path(9, "resolve") == "/bugs/9/resolve"
-    assert task_create_path(1664) == "/executions/1664/tasks"
+    assert task_create_path(100) == "/executions/100/tasks"
     assert task_action_path(3, "assignto") == "/tasks/3/assignto"
     assert story_create_path(12) == "/products/12/stories"
     assert story_action_path(100, "change") == "/stories/100/change"

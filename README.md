@@ -126,7 +126,7 @@ zqq-zentao my-todos --type today
 zqq-zentao tasks
 zqq-zentao tasks --assignedTo alice
 zqq-zentao tasks --assignedTo 张三 --status wait,doing
-zqq-zentao tasks --execution 1664 --openedBy bob
+zqq-zentao tasks --execution 100 --openedBy bob
 zqq-zentao bugs --product 12 --assignedTo alice --status active
 zqq-zentao stories --project 5 --openedBy bob
 zqq-zentao --pick id,status,title bugs --product 12
@@ -135,7 +135,7 @@ zqq-zentao task 39980
 zqq-zentao projects --limit 5
 zqq-zentao projects --program 1
 zqq-zentao executions --limit 5
-zqq-zentao execution 1664
+zqq-zentao execution 100
 zqq-zentao users --limit 5
 zqq-zentao user admin
 zqq-zentao programs
@@ -151,7 +151,7 @@ zqq-zentao bugs --product 12
 zqq-zentao bug 200
 zqq-zentao bug resolve 200 --resolution fixed --yes
 zqq-zentao task start 39980 --yes
-zqq-zentao task create --execution 1664 --name "demo" --type devel --assignedTo alice --estStarted 2026-01-01 --deadline 2026-01-02 --yes
+zqq-zentao task create --execution 100 --name "demo" --type devel --assignedTo alice --estStarted 2026-01-01 --deadline 2026-01-02 --yes
 zqq-zentao ping
 zqq-zentao departments
 zqq-zentao comment list task 39973
