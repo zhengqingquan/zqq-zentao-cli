@@ -3,10 +3,12 @@
 
 from __future__ import annotations
 
+import sys
 from typing import Any
 
 from ..list_filter import apply_user_filters
 from ..protocol import ZenTaoClient
+from ..rest.browse_filter import plan_bugs_stories_filter
 from ..rest.client import RestClient
 from ..rest.resources import Resource, resource_by_detail_cmd, resource_by_list_cmd
 from ..user_resolve import resolve_optional, search_users
@@ -57,6 +59,19 @@ def list_by_cmd(
     st = (status or "").strip() or None
 
     if (at or ob or st) and res.list_key and res.paginated:
+        if res.key in ("bugs", "stories"):
+            return _list_bugs_stories_filtered(
+                rest,
+                res,
+                page=page,
+                limit=limit,
+                scopes=scopes,
+                path_param=path_param,
+                query=q or None,
+                assigned_to=at,
+                opened_by=ob,
+                status=st,
+            )
         return _list_all_then_filter(
             rest,
             res,
@@ -76,6 +91,61 @@ def list_by_cmd(
         scopes=scopes,
         path_param=path_param,
         query=q or None,
+    )
+
+
+def _list_bugs_stories_filtered(
+    rest: RestClient,
+    res: Resource,
+    *,
+    page: int,
+    limit: int,
+    scopes: dict[str, str | int | None] | None,
+    path_param: str | None,
+    query: dict[str, str] | None,
+    assigned_to: str | None,
+    opened_by: str | None,
+    status: str | None,
+) -> dict[str, Any]:
+    """Prefer REST browseType (status=) for bugs/stories; else full client filter."""
+    assert res.key in ("bugs", "stories")
+    me = str(rest.profile.get("account") or "").strip()
+    plan = plan_bugs_stories_filter(
+        "bugs" if res.key == "bugs" else "stories",
+        me=me,
+        assigned_to=assigned_to,
+        opened_by=opened_by,
+        status=status,
+    )
+    if plan.note:
+        print(plan.note, file=sys.stderr)
+
+    q = dict(query or {})
+    if plan.server_status:
+        q["status"] = plan.server_status
+
+    if plan.mode in ("passthrough", "server_page"):
+        return rest.list_resource(
+            res.key,
+            page=page,
+            limit=limit,
+            scopes=scopes,
+            path_param=path_param,
+            query=q or None,
+        )
+
+    # server_then_client / client_all: paginate scoped list (with optional browseType).
+    return _list_all_then_filter(
+        rest,
+        res,
+        page=page,
+        limit=limit,
+        scopes=scopes,
+        path_param=path_param,
+        query=q or None,
+        assigned_to=plan.client_assigned_to,
+        opened_by=plan.client_opened_by,
+        status=plan.client_status,
     )
 
 

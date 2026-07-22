@@ -82,13 +82,12 @@
 
 | 优先级 | 项 | 为什么 | 切入点 |
 |--------|-----|--------|--------|
-| **高** | **bugs/stories 服务端搜** | 大产品下客户端滤 `assignedTo` 会先拉全量，慢且易超时 | 查 22.3 REST search / Web 浏览参数；能服务端则服务端，否则文档标明限制 |
 | **中** | **用户表短缓存** | 每次实名解析都打 users，批量查询重复 | `user_resolve.py` + 本地 TTL 缓存（按 server+account） |
 | **中** | **补齐次要 my-\*** | `my-requirements` / `my-epics` / `my-docs` / `my-projects` / `my-executions` 契约仍 ⏳ | 扩 `my_pages.py` 注册表即可复用翻页 |
-| **中** | **README 示例对齐现状** | 写/my-\*/`--pick`/`--status` 示例可能落后 | `README.md` / `README.en.md` + skill |
 | **低** | **双通道失败降级** | `auto` 时 rest 挂了自动试 web（或反之） | `capabilities` / `factory`；可选，勿默默吞错 |
 | **低** | **REST my-tasks 与 Web 翻页一致体验** | REST 侧分页已有 workaround；确认大列表不截断 | `rest/tasks.py`；对照 Web 200/页行为 |
 | **低** | **脱敏 / 日志** | 勿把真实同事名写进仓库文档与测试夹具 | `.cursor/rules/desensitize.mdc` |
+| **已做** | **bugs/stories 服务端 browseType** | 本人/状态类过滤走 REST `status=`；查他人仍客户端全量 | `rest/browse_filter.py` + `services/resources.py` |
 
 ### 文档 / 技能（随实现更新）
 
@@ -110,7 +109,7 @@
 |------|-------------|
 | 问「张三的任务」 | `--assignedTo 张三` 会解析实名；多命中时报错列候选。也可用 `users --search 张三` |
 | `GET /bugs` 要 product id | 无全局 my-bugs REST；用 Web `my-bugs` 或 `bugs --product` |
-| 产品下 `assignedTo` query 无效 | 服务端常忽略 → 客户端过滤（已实现）；**大产品会慢**（P3 待优化服务端搜） |
+| 产品下 `assignedTo` query 无效 | REST 无任意账号过滤；**本人**已映射 `assigntome`/`assignedtome`（见 `browse_filter.py`）；查他人仍客户端全量（stderr 提示） |
 | `GET /tasks` 无 execution | 默认像「我的任务」；查别人用 `--assignedTo`（`search=1`） |
 | `tasks --openedBy` 单独用 | API search 无 openedBy → 须 `-e` 或同时 `--assignedTo` |
 | 只有 Token 无 Cookie | Web 命令（`my-*`/`comment`）失败 → 需 `login` 带密码 |
@@ -136,6 +135,7 @@
 | `src/rest/resources.py` | REST 只读注册表（含 `user_filters`） |
 | `src/rest/tasks.py` | my-tasks / search / execution 任务 |
 | `src/rest/writes.py` | REST 写路径与响应校验 |
+| `src/rest/browse_filter.py` | bugs/stories → REST browseType（`status=`）规划 |
 | `src/confirm_util.py` / `payload.py` | 写前确认、`--data` 合并 |
 | `src/services/stories.py` | story 写与状态动作（确认层） |
 | `src/web/my_pages.py` | 「我的」Web 页注册表（`--type` / `--scope` + 分页 PATHINFO） |
@@ -151,9 +151,9 @@
 
 ## 6. 建议下一刀（给 Agent 的一句话）
 
-> **优先 bugs/stories 大产品服务端过滤**（客户端滤慢/易超时）。并行可做：P2 次要模块写（productplan/testcase…）或 README/skill 示例同步；或低成本补 `my-requirements` / `my-epics`。真机写联调另开，勿默认对生产环境试写。
+> **优先用户表短缓存**或补 `my-requirements` / `my-epics`（低成本）。P2 次要模块写另开。查他人 bugs/stories 仍无 REST 任意账号过滤（已文档化）；真机写联调另开，勿默认对生产环境试写。
 
-备选（体验刀）：用户表短缓存；或注册 `my-requirements` / `my-epics`（复用翻页注册表，成本低）。
+备选：双通道失败降级；或 REST my-tasks 大列表不截断确认。
 
 ---
 
@@ -167,3 +167,4 @@
 | 2026-07-23 | P1：bug/task REST 写与状态动作 + `--yes` 确认 |
 | 2026-07-23 | P3：Web my-\*/execution 翻页拉全；重写「已完成 / 优化表 / 下一刀」 |
 | 2026-07-23 | P1：story REST 写与状态动作；下一刀改为服务端过滤 / P2 |
+| 2026-07-23 | P3：bugs/stories 映射 REST browseType（本人/状态）；查他人仍客户端 |

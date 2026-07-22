@@ -92,7 +92,7 @@ zqq-zentao comment list|add|edit …
 说明：
 
 - `tasks --assignedTo`：先姓名→账号解析，再 REST `GET /tasks?search=1&assignedTo=…`，客户端校对；可加 `--status`
-- `bugs` / `stories`：在 scope 下列全量后客户端过滤（服务端 query 不可靠）
+- `bugs` / `stories`：优先走 REST `status=`（browseType）。`--assignedTo`/`--openedBy` 为**当前用户**时用 `assigntome`/`openedbyme`（stories 为 `assignedtome`）；`--status active` 等映射为 `unresolved`/`activestory` 等。查**他人**名下仍拉全量后客户端过滤（慢），stderr 会提示；查自己优先 `my-bugs` / `my-stories`
 - `tasks --openedBy` 单独使用时请加 `-e <executionId>`（全局 search 无 openedBy 字段）
 - 鉴权日志（`auth: rest-token(...)` 等）打在 **stderr**，勿与 stdout JSON 混用
 
