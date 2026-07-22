@@ -151,6 +151,15 @@ class RestClient:
     def my_bugs(self) -> list[dict[str, Any]]:
         raise SystemExit("my-bugs requires --backend web")
 
+    def my_page(
+        self,
+        cmd: str,
+        *,
+        scope: str,
+        browse_type: str,
+    ) -> list[dict[str, Any]]:
+        raise SystemExit(f"{cmd} with --scope/--type requires --backend web")
+
     def list_tasks(
         self,
         *,

@@ -57,8 +57,8 @@
 
 ### P0-B — 「我的」补齐
 
-- [ ] `my-tasks` / `my-bugs` 支持 `--type`（contribute：`openedBy` / `resolvedBy` 等）
-- [ ] 新增 `my-stories`、`my-todos`、`my-testcases`、`my-testtasks`、`my-feedbacks`、`my-tickets`（Web PATHINFO，对齐禅道 22.3 `my::work` / `my::contribute`）
+- [x] `my-tasks` / `my-bugs` 支持 `--type`（contribute：`openedBy` / `resolvedBy` 等）
+- [x] 新增 `my-stories`、`my-todos`、`my-testcases`、`my-testtasks`、`my-feedbacks`、`my-tickets`（Web PATHINFO，对齐禅道 22.3 `my::work` / `my::contribute`）
 - [x] 空 dtable（0 条）视为成功，勿当解析失败（`my-bugs` / `my-tasks` / execution 已对齐）
 
 参考路径：
@@ -85,7 +85,7 @@
 
 ### P3 — 工程与体验
 
-- [ ] Web「我的」注册表化（类似 `rest/resources.py`；已抽 `web/lists.py::fetch_dtable_list`）
+- [x] Web「我的」注册表化（`web/my_pages.py` + `fetch_dtable_list`；可继续扩 epic/requirement 等）
 - [ ] bugs/stories 过滤：尽量服务端搜，避免「拉全量再滤」过慢
 - [ ] Web 列表大 `recPerPage` / 翻页拉全
 - [ ] 双通道失败降级（可选）
@@ -128,6 +128,7 @@
 | `src/list_filter.py` | `--assignedTo` / `--openedBy` / `--status` 客户端过滤 |
 | `src/rest/resources.py` | REST 只读注册表（含 `user_filters`） |
 | `src/rest/tasks.py` | my-tasks / search / execution 任务 |
+| `src/web/my_pages.py` | 「我的」Web 页注册表（`--type` / `--scope`） |
 | `src/web/lists.py` | zin dtable 列表共用拉取（空表成功） |
 | `src/web/bugs.py` / `web/tasks.py` / `web/comments.py` | Web 拉页与解析 |
 | `src/web/parse.py` | zin / dtable |
@@ -140,7 +141,7 @@
 
 ## 6. 建议下一刀（给 Agent 的一句话）
 
-> P0-A 已完成。下一刀做 **P0-B**：`my-tasks`/`my-bugs` 的 `--type`，并新增 `my-stories` 等（基于 `web/lists.fetch_dtable_list`）；补测试与 `cli-surface` / 本文勾选。
+> P0-A / P0-B 已完成。下一刀做 **P1 核心写**：优先 REST 实现 bug/task 的 create/update/状态动作（resolve/start/finish…），写前确认与 `--yes`；同步 `cli-surface` / 本文勾选。
 
 ---
 
@@ -150,3 +151,4 @@
 |------|------|
 | 2026-07-23 | 初版交接文档（对齐已拍板边界与当前已实现过滤） |
 | 2026-07-23 | P0-A：姓名解析、`--status`、`--pick`/默认列、空 dtable 对齐 |
+| 2026-07-23 | P0-B：`my-* --type/--scope` 与 my-stories/todos/test… 注册表 |

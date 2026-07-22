@@ -9,17 +9,20 @@ from typing import Any
 from ..task_shape import summarize_task
 from .comments import list_comments
 from .lists import fetch_dtable_list
+from .my_pages import fetch_my_page, my_page_by_cmd
 from .parse import looks_auth_fail, parse_task_view_html, strip_tags, zin_main_html
 from .session import Session
 
 
-def fetch_my_tasks(sess: Session) -> list[dict[str, Any]]:
-    return fetch_dtable_list(
-        sess,
-        "/my-work-task-assignedTo.html?zin=1",
-        label="my-tasks",
-        summarize=summarize_task,
-    )
+def fetch_my_tasks(
+    sess: Session,
+    *,
+    browse_type: str | None = None,
+    scope: str | None = None,
+) -> list[dict[str, Any]]:
+    page = my_page_by_cmd("my-tasks")
+    assert page is not None
+    return fetch_my_page(sess, page, browse_type=browse_type, scope=scope)
 
 
 def fetch_execution_tasks(sess: Session, execution_id: str | int) -> list[dict[str, Any]]:

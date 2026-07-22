@@ -118,7 +118,9 @@ zqq-zentao login
 zqq-zentao login -s https://zentao.example.com -u admin -p secret
 zqq-zentao whoami
 zqq-zentao my-tasks
-zqq-zentao my-bugs
+zqq-zentao my-bugs --type resolvedBy
+zqq-zentao my-stories
+zqq-zentao my-todos --type today
 zqq-zentao tasks
 zqq-zentao tasks --assignedTo alice
 zqq-zentao tasks --assignedTo 张三 --status wait,doing
@@ -153,8 +155,8 @@ zqq-zentao comment edit 1063694 "新备注"
 |------|------|------|
 | `login` | 登录并缓存 Cookie / Token | web + rest（`auto`） |
 | `whoami` | 当前账号与服务器 | web / rest |
-| `my-tasks` | 指派给我的任务（REST 用 `/tasks` 过滤指派人） | web / rest |
-| `my-bugs` | 指派给我的 Bug（Web：`/my-work-bug-assignedTo.html`） | **仅 web** |
+| `my-tasks` | 我的任务；`--type` / `--scope`（默认指派给我） | web / rest（仅默认） |
+| `my-bugs` / `my-stories` / `my-todos` / `my-testcases` / `my-testtasks` / `my-feedbacks` / `my-tickets` | 我的地盘列表（Web；可 `--type`） | **仅 web** |
 | `tasks` | REST 任务列表；可 `--assignedTo`（查别人） | **仅 rest** |
 | `tasks -e <id>` | 某执行下的任务；可 `--assignedTo` / `--openedBy` | web / rest |
 | `task <id>` | 任务详情（REST 返回完整字段） | web / rest |

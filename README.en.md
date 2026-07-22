@@ -118,7 +118,9 @@ Auth behavior:
 zqq-zentao login -s https://zentao.example.com -u admin -p secret
 zqq-zentao whoami
 zqq-zentao my-tasks
-zqq-zentao my-bugs
+zqq-zentao my-bugs --type resolvedBy
+zqq-zentao my-stories
+zqq-zentao my-todos --type today
 zqq-zentao tasks
 zqq-zentao tasks --assignedTo alice
 zqq-zentao tasks --assignedTo 张三 --status wait,doing
@@ -153,8 +155,8 @@ zqq-zentao comment edit 1063694 "updated comment"
 |---------|-------------|---------|
 | `login` | Login and cache Cookie / Token | web + rest (`auto`) |
 | `whoami` | Current account and server | web / rest |
-| `my-tasks` | Tasks assigned to me (REST filters `/tasks` by assignee) | web / rest |
-| `my-bugs` | Bugs assigned to me (Web: `/my-work-bug-assignedTo.html`) | **web only** |
+| `my-tasks` | My tasks; `--type` / `--scope` (default assigned to me) | web / rest (default only) |
+| `my-bugs` / `my-stories` / `my-todos` / `my-testcases` / `my-testtasks` / `my-feedbacks` / `my-tickets` | My workbench lists (Web; optional `--type`) | **web only** |
 | `tasks` | REST task list; optional `--assignedTo` (others) | **rest only** |
 | `tasks -e <id>` | Tasks under an execution; `--assignedTo` / `--openedBy` | web / rest |
 | `task <id>` | Task detail (REST returns full fields) | web / rest |

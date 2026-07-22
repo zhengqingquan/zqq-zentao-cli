@@ -114,14 +114,33 @@ class WebClient:
 
     def my_tasks(self) -> list[dict[str, Any]]:
         def _run() -> list[dict[str, Any]]:
-            rows = tasks_api.fetch_my_tasks(self._sess)
-            return rows
+            return tasks_api.fetch_my_tasks(self._sess)
 
         return self._with_auth_retry(_run)
 
     def my_bugs(self) -> list[dict[str, Any]]:
         def _run() -> list[dict[str, Any]]:
             return bugs_api.fetch_my_bugs(self._sess)
+
+        return self._with_auth_retry(_run)
+
+    def my_page(
+        self,
+        cmd: str,
+        *,
+        scope: str,
+        browse_type: str,
+    ) -> list[dict[str, Any]]:
+        from .my_pages import fetch_my_page, my_page_by_cmd
+
+        page = my_page_by_cmd(cmd)
+        if page is None:
+            raise SystemExit(f"Unknown my-* command: {cmd}")
+
+        def _run() -> list[dict[str, Any]]:
+            return fetch_my_page(
+                self._sess, page, browse_type=browse_type, scope=scope
+            )
 
         return self._with_auth_retry(_run)
 

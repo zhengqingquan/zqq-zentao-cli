@@ -14,9 +14,9 @@ def test_comment_auto_forces_web() -> None:
     assert resolve_backend("comment.add", cli_backend="auto") == "web"
 
 
-def test_my_bugs_auto_forces_web() -> None:
-    assert resolve_backend("my-bugs", cli_backend="auto") == "web"
-    assert resolve_backend("my-bugs", cli_backend="web") == "web"
+def test_my_page_capability_forces_web() -> None:
+    assert resolve_backend("my-page", cli_backend="auto") == "web"
+    assert resolve_backend("my-stories", cli_backend="auto") == "web"
 
 
 def test_my_bugs_rejects_rest() -> None:

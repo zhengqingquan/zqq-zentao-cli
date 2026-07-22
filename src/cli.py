@@ -32,11 +32,12 @@ from .rest.resources import (
     resources_for_cli,
 )
 from .services import auth as auth_svc
-from .services import bugs as bug_svc
 from .services import comments as comment_svc
+from .services import my_pages as my_page_svc
 from .services import resources as resource_svc
 from .services import tasks as task_svc
 from .user_resolve import resolve_optional
+from .web.my_pages import MY_PAGES, my_page_by_cmd, resolve_browse, uses_rest_default
 from .web.parse import strip_tags
 
 _SCOPE_FLAGS = (
@@ -54,12 +55,12 @@ _USER_FIELDS = ["account", "realname"]
 
 _DEFAULT_LIST_FIELDS: dict[str, list[str]] = {
     "tasks": _TASK_FIELDS,
-    "my-tasks": _TASK_FIELDS,
     "bugs": _BUG_FIELDS,
-    "my-bugs": _BUG_FIELDS,
     "stories": _STORY_FIELDS,
     "users": _USER_FIELDS,
 }
+for _mp in MY_PAGES.values():
+    _DEFAULT_LIST_FIELDS[_mp.cmd] = list(_mp.table_fields)
 
 _QUERY_HELPS = {
     "search": "Search users by account / realname / pinyin (client-side)",
@@ -164,6 +165,32 @@ def _add_status_flag(parser: argparse.ArgumentParser) -> None:
         default=None,
         help="Filter by status (comma-separated, e.g. wait,doing)",
     )
+
+
+def _add_my_page_flags(parser: argparse.ArgumentParser, page_cmd: str) -> None:
+    page = my_page_by_cmd(page_cmd)
+    assert page is not None
+    types = (*page.work_types, *page.contribute_types, *page.todo_types)
+    type_help = ", ".join(types) if types else page.default_type
+    parser.add_argument(
+        "--type",
+        default=None,
+        dest="browse_type",
+        help=f"Browse type (default {page.default_type}); one of: {type_help}",
+    )
+    if page.default_scope != "todo":
+        parser.add_argument(
+            "--scope",
+            choices=("work", "contribute"),
+            default=None,
+            help=f"my-work vs my-contribute (default {page.default_scope})",
+        )
+
+
+def _register_my_page_parsers(sub: argparse._SubParsersAction[Any]) -> None:
+    for page in MY_PAGES.values():
+        p = sub.add_parser(page.cmd, help=page.help)
+        _add_my_page_flags(p, page.cmd)
 
 
 def _register_resource_parsers(sub: argparse._SubParsersAction[Any]) -> None:
@@ -279,8 +306,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_login.add_argument("-p", "--password", help="Password (or ZENTAO_PASSWORD)")
 
     sub.add_parser("whoami", help="Show configured account and server")
-    sub.add_parser("my-tasks", help="Tasks assigned to me")
-    sub.add_parser("my-bugs", help="Bugs assigned to me (web only)")
+    _register_my_page_parsers(sub)
 
     p_tasks = sub.add_parser(
         "tasks",
@@ -320,6 +346,16 @@ def _capability(args: argparse.Namespace) -> str:
         return f"comment.{args.c_cmd}"
     if args.cmd == "tasks" and not args.execution:
         return "tasks.list"
+    page = my_page_by_cmd(args.cmd)
+    if page is not None:
+        scope, browse_type = resolve_browse(
+            page,
+            browse_type=getattr(args, "browse_type", None),
+            scope=getattr(args, "scope", None),
+        )
+        if uses_rest_default(page, scope, browse_type):
+            return page.cmd
+        return "my-page"
     return args.cmd
 
 
@@ -441,20 +477,20 @@ def main(argv: list[str] | None = None) -> int:
         emit(client.whoami(), is_list=False)
         return 0
 
-    if args.cmd == "my-tasks":
-        emit(
-            _normalize_task_rows(task_svc.my_tasks(client)),
-            is_list=True,
-            fields=_fields_for("my-tasks", args),
+    if my_page_by_cmd(args.cmd) is not None:
+        rows = my_page_svc.list_my(
+            client,
+            args.cmd,
+            browse_type=getattr(args, "browse_type", None),
+            scope=getattr(args, "scope", None),
         )
-        return 0
-
-    if args.cmd == "my-bugs":
-        emit(
-            _normalize_bug_rows(bug_svc.my_bugs(client)),
-            is_list=True,
-            fields=_fields_for("my-bugs", args),
-        )
+        fields = _fields_for(args.cmd, args)
+        # Keep compact markdown for tasks/bugs defaults.
+        if args.cmd == "my-tasks":
+            rows = _normalize_task_rows(rows)
+        elif args.cmd == "my-bugs":
+            rows = _normalize_bug_rows(rows)
+        emit(rows, is_list=True, fields=fields)
         return 0
 
     if args.cmd == "tasks":

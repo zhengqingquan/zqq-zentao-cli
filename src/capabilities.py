@@ -8,20 +8,28 @@ from typing import Literal
 
 from .config import Backend, env_backend, resolve_token
 from .rest.resources import capability_names
+from .web.my_pages import MY_PAGES
 
 BackendName = Literal["web", "rest"]
 
 CAPABILITIES: dict[str, frozenset[BackendName]] = {
     "whoami": frozenset({"web", "rest"}),
-    "my-tasks": frozenset({"web", "rest"}),
-    "my-bugs": frozenset({"web"}),
     "tasks": frozenset({"web", "rest"}),
     "tasks.list": frozenset({"rest"}),
     "task": frozenset({"web", "rest"}),
     "comment.list": frozenset({"web"}),
     "comment.add": frozenset({"web"}),
     "comment.edit": frozenset({"web"}),
+    # Non-default my-* type/scope always Web PATHINFO.
+    "my-page": frozenset({"web"}),
 }
+
+# my-* pages: web; my-tasks default also rest (selected via uses_rest_default in CLI).
+for _page in MY_PAGES.values():
+    if _page.rest_default:
+        CAPABILITIES[_page.cmd] = frozenset({"web", "rest"})
+    else:
+        CAPABILITIES[_page.cmd] = frozenset({"web"})
 
 for _cap in capability_names():
     CAPABILITIES.setdefault(_cap, frozenset({"rest"}))

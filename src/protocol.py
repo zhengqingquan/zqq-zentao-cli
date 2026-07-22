@@ -22,6 +22,14 @@ class ZenTaoClient(Protocol):
 
     def my_bugs(self) -> list[dict[str, Any]]: ...
 
+    def my_page(
+        self,
+        cmd: str,
+        *,
+        scope: str,
+        browse_type: str,
+    ) -> list[dict[str, Any]]: ...
+
     def list_tasks(
         self,
         *,

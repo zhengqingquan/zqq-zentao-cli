@@ -122,16 +122,16 @@ zqq-zentao comment list|add|edit …
 
 | 命令 | 默认 `--type` | 其它常用 type | 状态 | 通道倾向 |
 |------|---------------|---------------|------|----------|
-| `my-tasks` | `assignedTo` | work: —；contribute: `openedBy` `finishedBy` `myInvolved` `closedBy` `canceledBy` `assignedBy` | ✅ 仅默认；⏳ type | web/rest（默认已双通道） |
-| `my-bugs` | `assignedTo` | `openedBy` `resolvedBy` `closedBy` `assignedBy` | ✅ 仅默认；⏳ type | **web** |
-| `my-stories` | `assignedTo` | `reviewBy`；contribute: `openedBy` `reviewedBy` `closedBy` `assignedBy` | ⏳ | web |
+| `my-tasks` | `assignedTo` | work: —；contribute: `openedBy` `finishedBy` `myInvolved` `closedBy` `canceledBy` `assignedBy` | ✅ `--type`/`--scope` | web/rest（仅默认 work+assignedTo 走 rest） |
+| `my-bugs` | `assignedTo` | contribute: `openedBy` `resolvedBy` `closedBy` `assignedBy` | ✅ | **web** |
+| `my-stories` | `assignedTo` | work: `reviewBy`；contribute: `openedBy` `reviewedBy` `closedBy` `assignedBy` | ✅ | web |
 | `my-requirements` | `assignedTo` | 同 story + `reviewBy` | ⏳ | web |
 | `my-epics` | `assignedTo` | 同 requirement | ⏳ | web |
-| `my-todos` | `all`（或源码默认） | 按 todo browseType | ⏳ | web（rest 可辅） |
-| `my-testcases` | `assigntome` | contribute: `openedbyme` | ⏳ | web |
-| `my-testtasks` | `assignedTo` / `wait` | contribute: `done` | ⏳ | web |
-| `my-feedbacks` | `assigntome` | 按 feedback browseType | ⏳ | web |
-| `my-tickets` | `assignedtome` | 按 ticket browseType | ⏳ | web |
+| `my-todos` | `all` | `undone` `future` `today` `thisWeek` `thisMonth` | ✅ | web |
+| `my-testcases` | `assigntome` | contribute: `openedbyme` | ✅ | web |
+| `my-testtasks` | `assignedTo` | work: `wait`；contribute: `done` | ✅ | web |
+| `my-feedbacks` | `assigntome` | work: `assignedby`；contribute: `openedbyme` | ✅ | web |
+| `my-tickets` | `assignedtome` | contribute: `openedbyme` | ✅ | web |
 | `my-docs` | `openedbyme` | `editedbyme` | ⏳ | web |
 | `my-projects` | `doing` | 按 my::project | ⏳ | web |
 | `my-executions` | `undone` | 按 my::execution | ⏳ | web |
@@ -141,8 +141,9 @@ zqq-zentao comment list|add|edit …
 
 实现要点：
 
-- 共用 Web 拉页 + `parse_dtable_rows` + 各 `*_shape.py`
-- `capabilities`：多数 **仅 web**；能 REST 复现的再标双通道
+- 注册表：`src/web/my_pages.py`；共用 `fetch_dtable_list` + `*_shape` / `my_shape`
+- CLI：`my-<noun> [--type …] [--scope work|contribute]`（todos 无 `--scope`）
+- `capabilities`：多数 **仅 web**；`my-tasks` 默认双通道，其它 type 强制 web（`my-page`）
 - 空列表：有 dtable 且 `data:[]` 视为成功（0 条）
 
 ---
@@ -240,9 +241,9 @@ zqq-zentao comment list|add|edit …
 ### P0 — 契约、「我的」与「查别人」过滤
 
 1. ✅ 本文档落地；README / skill 指向本文  
-2. `my-*` 扩展：`stories` `todos` `testcases` `testtasks` `feedbacks` `tickets` + 各命令 `--type`  
-3. `my-tasks` / `my-bugs` 支持 `--type`  
-4. ✅ 范围列表：`tasks` / `bugs` / `stories` 支持 `--assignedTo` / `--openedBy`  
+2. ✅ `my-*` 扩展：`stories` `todos` `testcases` `testtasks` `feedbacks` `tickets` + 各命令 `--type`  
+3. ✅ `my-tasks` / `my-bugs` 支持 `--type` / `--scope`  
+4. ✅ 范围列表：`tasks` / `bugs` / `stories` 支持 `--assignedTo` / `--openedBy`（及 `--status` / 姓名解析 / `--pick`）  
 
 ### P1 — 核心写路径
 
@@ -258,9 +259,10 @@ zqq-zentao comment list|add|edit …
 
 ### P3 — 体验
 
-- Web `my-*` 注册表化（类似 `rest/resources.py`）
+- ✅ Web `my-*` 注册表化（`web/my_pages.py`）
 - 双通道失败降级（可选）
 - 分页：Web 大 `recPerPage` / 翻页拉全
+- 用户表本地短缓存（姓名解析）
 
 ---
 
@@ -269,8 +271,8 @@ zqq-zentao comment list|add|edit …
 | 类别 | 进度 |
 |------|------|
 | 会话 / 只读浏览 registry | 大部分 ✅ |
-| `my-tasks` / `my-bugs`（仅默认 type） | ✅ |
-| 其它 `my-*` / `--type` | ⏳ |
+| `my-tasks` / `my-bugs` + `--type`/`--scope` | ✅ |
+| 其它 `my-*`（stories/todos/test…） | ✅（epic/requirement/docs 等仍 ⏳） |
 | CRUD / 状态动作 | ⏳（仅 `comment` 写 ✅） |
 | 文档宣称「做 CRUD」 | ⏳ → 随本文与 README 同步 |
 
@@ -290,3 +292,4 @@ zqq-zentao comment list|add|edit …
 |------|------|
 | 2026-07-23 | 初版：边界拍板（放开写、`my-* --type`、更多我的、本工具做 CRUD） |
 | 2026-07-23 | 补充定位：全面 CLI；不限本人；`my-*` 与 scope+过滤分工 |
+| 2026-07-23 | P0-B：`my_pages` 注册表；多 my-* + `--type`/`--scope` |

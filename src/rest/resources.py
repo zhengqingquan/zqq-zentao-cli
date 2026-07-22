@@ -45,6 +45,12 @@ SPECIAL_CMDS = frozenset(
         "whoami",
         "my-tasks",
         "my-bugs",
+        "my-stories",
+        "my-todos",
+        "my-testcases",
+        "my-testtasks",
+        "my-feedbacks",
+        "my-tickets",
         "tasks",  # dual-backend + table output; also covers registry key "tasks"
         "task",
         "comment",
