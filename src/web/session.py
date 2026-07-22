@@ -17,10 +17,11 @@ from ..config import USER_AGENT, md5_hex
 
 
 class Session:
-    def __init__(self, server: str, insecure: bool = True):
+    def __init__(self, server: str, insecure: bool = True, *, timeout: float = 60.0):
         self.server = server.rstrip("/")
         self.cookies: dict[str, str] = {}
         self.insecure = insecure
+        self.timeout = timeout
         self._ssl = ssl._create_unverified_context() if insecure else None
 
     def _cookie_header(self) -> str:
@@ -67,7 +68,7 @@ class Session:
 
         req = urllib.request.Request(url, data=data, headers=hdrs, method=method.upper())
         try:
-            with urllib.request.urlopen(req, context=self._ssl, timeout=60) as res:
+            with urllib.request.urlopen(req, context=self._ssl, timeout=self.timeout) as res:
                 body = res.read()
                 self._merge_set_cookie(res.headers)
                 status = res.status

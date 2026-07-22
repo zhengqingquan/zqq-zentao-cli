@@ -12,11 +12,44 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Literal
 
-CONFIG_PATH = Path.home() / ".config" / "zentao" / "zentao.json"
 USER_AGENT = "zentao-operator/0.3 (+python; web+rest)"
 LOGIN_HINT = "Run: zqq-zentao login -s <url> -u <account> -p <password>"
+DEFAULT_TIMEOUT_MS = 60_000
 
 Backend = Literal["web", "rest", "auto"]
+
+_config_path_override: Path | None = None
+
+
+def default_config_path() -> Path:
+    return Path.home() / ".config" / "zentao" / "zentao.json"
+
+
+def get_config_path() -> Path:
+    """Active config file: --config / ZENTAO_CONFIG_FILE / ~/.config/zentao/zentao.json."""
+    if _config_path_override is not None:
+        return _config_path_override
+    env = (os.environ.get("ZENTAO_CONFIG_FILE") or "").strip()
+    if env:
+        return _expand_config_path(env)
+    return default_config_path()
+
+
+def set_config_path(path: str) -> Path:
+    """Set config path from CLI --config (absolute or ~-expanded)."""
+    global _config_path_override
+    if not isinstance(path, str) or not path.strip():
+        raise SystemExit("--config path must be a non-empty string")
+    resolved = _expand_config_path(path.strip())
+    _config_path_override = resolved
+    return resolved
+
+
+def _expand_config_path(path: str) -> Path:
+    p = Path(path).expanduser()
+    if not p.is_absolute():
+        p = Path.cwd() / p
+    return p.resolve()
 
 
 def md5_hex(s: str) -> str:
@@ -55,29 +88,29 @@ def cookies_look_valid(cookies: dict[str, str] | None) -> bool:
 
 
 def _read_cfg() -> dict[str, Any]:
-    if not CONFIG_PATH.is_file():
+    if not get_config_path().is_file():
         return {"profiles": [], "currentProfile": None}
     try:
-        data = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
+        data = json.loads(get_config_path().read_text(encoding="utf-8"))
     except json.JSONDecodeError as e:
-        raise SystemExit(f"Invalid config JSON at {CONFIG_PATH}: {e}") from e
+        raise SystemExit(f"Invalid config JSON at {get_config_path()}: {e}") from e
     if not isinstance(data, dict):
-        raise SystemExit(f"Invalid config root at {CONFIG_PATH}")
+        raise SystemExit(f"Invalid config root at {get_config_path()}")
     return data
 
 
 def _write_cfg(cfg: dict[str, Any]) -> None:
-    CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
+    get_config_path().parent.mkdir(parents=True, exist_ok=True)
     text = json.dumps(cfg, ensure_ascii=False, indent="\t") + "\n"
     fd, tmp_name = tempfile.mkstemp(
-        dir=str(CONFIG_PATH.parent),
+        dir=str(get_config_path().parent),
         prefix=".zentao-",
         suffix=".tmp",
     )
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as f:
             f.write(text)
-        Path(tmp_name).replace(CONFIG_PATH)
+        Path(tmp_name).replace(get_config_path())
     except Exception:
         try:
             os.unlink(tmp_name)
@@ -144,7 +177,7 @@ def load_profile() -> dict[str, str]:
     server = env_server()
     account = env_account()
 
-    if CONFIG_PATH.is_file():
+    if get_config_path().is_file():
         cfg = _read_cfg()
         matched = _find_profile(cfg, server=server or None, account=account or None)
         if matched and matched.get("server") and matched.get("account"):
@@ -156,7 +189,7 @@ def load_profile() -> dict[str, str]:
     if server and account:
         return {"server": server, "account": account}
 
-    if not CONFIG_PATH.is_file():
+    if not get_config_path().is_file():
         raise SystemExit(
             f"Config not found. {LOGIN_HINT}, or set ZENTAO_SERVER/ZENTAO_URL + ZENTAO_ACCOUNT"
         )
@@ -176,7 +209,7 @@ def load_web_cookies(
     server: str | None = None,
     account: str | None = None,
 ) -> dict[str, str]:
-    if not CONFIG_PATH.is_file():
+    if not get_config_path().is_file():
         return {}
     cfg = _read_cfg()
     profile = _find_profile(cfg, server=server, account=account)
@@ -193,7 +226,7 @@ def load_stored_token(
     server: str | None = None,
     account: str | None = None,
 ) -> str:
-    if not CONFIG_PATH.is_file():
+    if not get_config_path().is_file():
         return ""
     cfg = _read_cfg()
     profile = _find_profile(cfg, server=server, account=account)
@@ -229,7 +262,7 @@ def save_profile_credentials(
     token: str | None = None,
 ) -> None:
     server = server.rstrip("/")
-    cfg = _read_cfg() if CONFIG_PATH.is_file() else {"profiles": [], "currentProfile": None}
+    cfg = _read_cfg() if get_config_path().is_file() else {"profiles": [], "currentProfile": None}
     profiles = cfg.get("profiles")
     key = profile_key(server, account)
     now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
@@ -313,7 +346,7 @@ def clear_web_cookies(
     server: str | None = None,
     account: str | None = None,
 ) -> None:
-    if not CONFIG_PATH.is_file():
+    if not get_config_path().is_file():
         return
     profile = load_profile() if (server is None or account is None) else {
         "server": (server or "").rstrip("/"),
@@ -349,3 +382,15 @@ def resolve_insecure(cli_insecure: bool | None = None) -> bool:
     if cli_insecure is not None:
         return bool(cli_insecure)
     return insecure_ssl()
+
+
+def resolve_timeout_seconds(cli_timeout_ms: int | None = None) -> float:
+    """
+    Request timeout in seconds for urllib.
+    Priority: CLI --timeout <ms> > default 60000ms (aligned unit with official zentao-cli).
+    """
+    if cli_timeout_ms is None:
+        return DEFAULT_TIMEOUT_MS / 1000.0
+    if cli_timeout_ms <= 0:
+        raise SystemExit("--timeout must be a positive integer (milliseconds)")
+    return cli_timeout_ms / 1000.0

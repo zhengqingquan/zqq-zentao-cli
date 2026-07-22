@@ -51,6 +51,28 @@ Env-only setups still work; unauthenticated commands hint you to run `zqq-zentao
 | `ZENTAO_TOKEN` | REST token (overrides file token) | ✅ |
 | `ZENTAO_BACKEND` | `web` \| `rest` \| `auto` (default `auto`) | — |
 | `ZENTAO_INSECURE` | Default `1` skips TLS verify; set `0` to verify | — (official uses `--insecure`) |
+| `ZENTAO_CONFIG_FILE` | Custom config file path | ✅ |
+
+### Global options (aligned with official zentao-cli)
+
+| Option | Description |
+|--------|-------------|
+| `-V` / `--version-flag` | Show version |
+| `--format <markdown\|json\|raw>` | Output format; default `markdown` (tables / key lists); `json` wraps `{status,data}`; `raw` is plain JSON |
+| `--silent` | Suppress result output |
+| `--insecure` / `--secure` | Skip / force TLS certificate verification |
+| `--timeout <ms>` | Request timeout in milliseconds (default 60000) |
+| `--config <file>` | Custom config file (or `ZENTAO_CONFIG_FILE`) |
+| `--machine-readable` | Compact output, disable colors |
+| `-h` / `--help` | Show help |
+
+```bash
+zqq-zentao -V
+zqq-zentao --format json whoami
+zqq-zentao --format raw --machine-readable task 39980
+zqq-zentao --timeout 10000 --insecure my-tasks
+zqq-zentao --config ./zentao.json whoami
+```
 
 Skip TLS certificate verification (common for self-signed / internal HTTPS):
 

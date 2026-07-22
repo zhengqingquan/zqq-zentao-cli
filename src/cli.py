@@ -9,6 +9,8 @@ Auth:
   - Caches webCookies + token in ~/.config/zentao/zentao.json (no password on disk)
   - Backend: --backend / ZENTAO_BACKEND = web|rest|auto
   - TLS: --insecure / --secure / ZENTAO_INSECURE (default skip verify)
+  - Global (aligned with official zentao-cli):
+      -V/--version-flag, --format, --silent, --timeout, --config, --machine-readable
 
 Never print Cookie / password / Token.
 """
@@ -16,11 +18,12 @@ Never print Cookie / password / Token.
 from __future__ import annotations
 
 import argparse
-import json
 import sys
 from typing import Any
 
+from .config import set_config_path
 from .factory import create_client
+from .output import configure_output, emit, package_version
 from .rest.resources import (
     SPECIAL_CMDS,
     resource_by_detail_cmd,
@@ -41,44 +44,40 @@ _SCOPE_FLAGS = (
     ("lib", "Scope by doc lib ID"),
 )
 
-
-def print_json(obj: Any) -> None:
-    text = json.dumps(obj, ensure_ascii=False, indent=2)
-    try:
-        print(text)
-    except UnicodeEncodeError:
-        enc = getattr(sys.stdout, "encoding", None) or "utf-8"
-        sys.stdout.buffer.write((text + "\n").encode(enc, errors="replace"))
-        sys.stdout.buffer.flush()
+_TASK_FIELDS = ["id", "status", "pri", "deadline", "executionName", "name"]
 
 
-def print_task_table(rows: list[dict[str, Any]]) -> None:
+def _normalize_task_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    out: list[dict[str, Any]] = []
     for t in rows:
-        print(
-            "\t".join(
-                str(x) if x is not None else ""
-                for x in [
-                    t.get("id"),
-                    t.get("status"),
-                    t.get("pri"),
-                    t.get("deadline") or "",
-                    t.get("executionName") or t.get("execution") or "",
-                    t.get("name") or "",
-                ]
-            )
+        out.append(
+            {
+                "id": t.get("id"),
+                "status": t.get("status"),
+                "pri": t.get("pri"),
+                "deadline": t.get("deadline") or "",
+                "executionName": t.get("executionName") or t.get("execution") or "",
+                "name": t.get("name") or "",
+            }
         )
-    print(f"count={len(rows)}")
+    return out
 
 
-def print_comment_list(data: list[Any]) -> None:
+def _normalize_comment_rows(data: list[Any]) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
     for a in data:
         if not isinstance(a, dict):
             continue
-        editable = "editable" if a.get("commentEditable") else ""
         comment = strip_tags(a.get("comment") or "") or "(no comment text)"
-        cols = [a.get("id"), a.get("action"), editable, comment]
-        print("\t".join(str(c) for c in cols if c not in ("", None)))
-    print(f"count={len(data)}")
+        rows.append(
+            {
+                "id": a.get("id"),
+                "action": a.get("action"),
+                "editable": "editable" if a.get("commentEditable") else "",
+                "comment": comment,
+            }
+        )
+    return rows
 
 
 def _add_page_limit(parser: argparse.ArgumentParser, *, limit: int = 50) -> None:
@@ -134,6 +133,41 @@ def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="zqq-zentao",
         description="ZenTao dual-backend client (Web Cookie / REST Token)",
+    )
+    p.add_argument(
+        "-V",
+        "--version-flag",
+        action="version",
+        version=package_version(),
+        help="Show version number",
+    )
+    p.add_argument(
+        "--format",
+        choices=("markdown", "json", "raw"),
+        default=None,
+        help="Output format (markdown|json|raw); default markdown",
+    )
+    p.add_argument(
+        "--silent",
+        action="store_true",
+        help="Silent mode (suppress result output)",
+    )
+    p.add_argument(
+        "--timeout",
+        type=int,
+        default=None,
+        metavar="ms",
+        help="Request timeout in milliseconds (default 60000)",
+    )
+    p.add_argument(
+        "--config",
+        metavar="config_file",
+        help="Custom config file path (or ZENTAO_CONFIG_FILE)",
+    )
+    p.add_argument(
+        "--machine-readable",
+        action="store_true",
+        help="Machine-readable mode: compact output, disable colors",
     )
     p.add_argument(
         "--backend",
@@ -223,7 +257,7 @@ def _dispatch_registry(client: Any, args: argparse.Namespace) -> bool:
         query = resource_svc.query_from_args(args, list_res) if list_res.query_params else None
         page = getattr(args, "page", 1)
         limit = getattr(args, "limit", 50)
-        print_json(
+        emit(
             resource_svc.list_by_cmd(
                 client,
                 args.cmd,
@@ -232,13 +266,14 @@ def _dispatch_registry(client: Any, args: argparse.Namespace) -> bool:
                 scopes=scopes,
                 path_param=path_param,
                 query=query,
-            )
+            ),
+            is_list=True,
         )
         return True
 
     detail_res = resource_by_detail_cmd(args.cmd)
     if detail_res is not None and args.cmd not in SPECIAL_CMDS:
-        print_json(resource_svc.get_by_cmd(client, args.cmd, args.id))
+        emit(resource_svc.get_by_cmd(client, args.cmd, args.id), is_list=False)
         return True
 
     return False
@@ -247,7 +282,18 @@ def _dispatch_registry(client: Any, args: argparse.Namespace) -> bool:
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
+
+    if args.config:
+        set_config_path(args.config)
+
+    configure_output(
+        format=args.format,
+        silent=args.silent,
+        machine_readable=args.machine_readable,
+    )
+
     insecure = _cli_insecure(args)
+    timeout_ms = args.timeout
 
     if args.cmd == "login":
         result = auth_svc.do_login(
@@ -256,45 +302,65 @@ def main(argv: list[str] | None = None) -> int:
             password=args.password,
             backend=args.backend,
             insecure=insecure,
+            timeout_ms=timeout_ms,
         )
-        print_json(result)
+        emit(result, is_list=False)
         return 0
 
     cap = _capability(args)
-    client = create_client(cap, cli_backend=args.backend, insecure=insecure)
+    client = create_client(
+        cap,
+        cli_backend=args.backend,
+        insecure=insecure,
+        timeout_ms=timeout_ms,
+    )
 
     if args.cmd == "whoami":
-        print_json(client.whoami())
+        emit(client.whoami(), is_list=False)
         return 0
 
     if args.cmd == "my-tasks":
-        print_task_table(task_svc.my_tasks(client))
+        emit(_normalize_task_rows(task_svc.my_tasks(client)), is_list=True, fields=_TASK_FIELDS)
         return 0
 
     if args.cmd == "tasks":
         if args.execution:
-            print_task_table(task_svc.execution_tasks(client, args.execution))
+            emit(
+                _normalize_task_rows(task_svc.execution_tasks(client, args.execution)),
+                is_list=True,
+                fields=_TASK_FIELDS,
+            )
         else:
-            print_json(task_svc.list_tasks(client, page=args.page, limit=args.limit))
+            emit(task_svc.list_tasks(client, page=args.page, limit=args.limit), is_list=True)
         return 0
 
     if args.cmd == "task":
-        print_json(task_svc.get_task(client, args.id))
+        emit(task_svc.get_task(client, args.id), is_list=False)
         return 0
 
     if args.cmd == "comment":
         if args.c_cmd == "list":
-            print_comment_list(comment_svc.list_comments(client, args.type, args.id))
+            emit(
+                _normalize_comment_rows(comment_svc.list_comments(client, args.type, args.id)),
+                is_list=True,
+                fields=["id", "action", "editable", "comment"],
+            )
             return 0
         if args.c_cmd == "add":
             text = " ".join(args.comment)
             r = comment_svc.add_comment(client, args.type, args.id, text)
-            print_json({"http": r["status"], "result": r["data"], "backend": client.backend})
+            emit(
+                {"http": r["status"], "result": r["data"], "backend": client.backend},
+                is_list=False,
+            )
             return 0
         if args.c_cmd == "edit":
             text = " ".join(args.comment)
             r = comment_svc.edit_comment(client, args.action_id, text)
-            print_json({"http": r["status"], "result": r["data"], "backend": client.backend})
+            emit(
+                {"http": r["status"], "result": r["data"], "backend": client.backend},
+                is_list=False,
+            )
             return 0
 
     if _dispatch_registry(client, args):

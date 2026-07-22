@@ -13,6 +13,7 @@ from ..config import (
     env_backend,
     env_server,
     resolve_insecure,
+    resolve_timeout_seconds,
     save_profile_credentials,
     try_resolve_password,
 )
@@ -48,6 +49,7 @@ def do_login(
     password: str | None = None,
     backend: str | None = None,
     insecure: bool | None = None,
+    timeout_ms: int | None = None,
 ) -> dict[str, Any]:
     srv, acc, pwd = resolve_login_args(server=server, account=account, password=password)
     chosen: Backend | str = (backend or env_backend() or "auto").strip().lower()
@@ -55,17 +57,18 @@ def do_login(
         raise SystemExit(f"Invalid backend={chosen!r}, expected web|rest|auto")
 
     skip_tls = resolve_insecure(insecure)
+    timeout = resolve_timeout_seconds(timeout_ms)
     did_web = False
     did_rest = False
 
     if chosen in ("web", "auto"):
-        sess = Session(srv, insecure=skip_tls)
+        sess = Session(srv, insecure=skip_tls, timeout=timeout)
         sess.login(acc, pwd)
         save_profile_credentials(srv, acc, cookies=dict(sess.cookies))
         did_web = True
 
     if chosen in ("rest", "auto"):
-        rest = RestSession(srv, insecure=skip_tls, account=acc)
+        rest = RestSession(srv, insecure=skip_tls, account=acc, timeout=timeout)
         token = rest.login(acc, pwd, force_password=True, prefer_stored=False)
         save_profile_credentials(srv, acc, token=token)
         did_rest = True

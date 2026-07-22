@@ -48,12 +48,19 @@ def _unwrap_entity(data: Any, *keys: str) -> dict[str, Any]:
 class RestClient:
     backend = "rest"
 
-    def __init__(self, profile: dict[str, str] | None = None, *, insecure: bool | None = None):
+    def __init__(
+        self,
+        profile: dict[str, str] | None = None,
+        *,
+        insecure: bool | None = None,
+        timeout: float | None = None,
+    ):
         self.profile = profile or load_profile()
         self._sess = RestSession(
             self.profile["server"],
             insecure=insecure_ssl() if insecure is None else insecure,
             account=self.profile["account"],
+            timeout=60.0 if timeout is None else timeout,
         )
         self._logged_in = False
 

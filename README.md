@@ -51,6 +51,28 @@ zqq-zentao login -s https://zentao.example.com -u your_account -p your_password
 | `ZENTAO_TOKEN` | REST Token（有则优先于文件内 token） | ✅ |
 | `ZENTAO_BACKEND` | `web` \| `rest` \| `auto`（默认 `auto`） | — |
 | `ZENTAO_INSECURE` | 默认 `1` 跳过 TLS 校验；设为 `0` 则校验 | —（官方用 `--insecure`） |
+| `ZENTAO_CONFIG_FILE` | 自定义配置文件路径 | ✅ |
+
+### 全局选项（对齐官方 zentao-cli）
+
+| 选项 | 说明 |
+|------|------|
+| `-V` / `--version-flag` | 显示版本号 |
+| `--format <markdown\|json\|raw>` | 输出格式；默认 `markdown`（列表为表格，对象为键值列表）；`json` 包装为 `{status,data}`；`raw` 为原始 JSON |
+| `--silent` | 静默模式（不打印结果） |
+| `--insecure` / `--secure` | 跳过 / 强制 TLS 证书校验 |
+| `--timeout <ms>` | 请求超时（毫秒，默认 60000） |
+| `--config <file>` | 自定义配置文件（亦可用 `ZENTAO_CONFIG_FILE`） |
+| `--machine-readable` | 机器可读：紧凑 JSON、禁用颜色 |
+| `-h` / `--help` | 显示帮助 |
+
+```bash
+zqq-zentao -V
+zqq-zentao --format json whoami
+zqq-zentao --format raw --machine-readable task 39980
+zqq-zentao --timeout 10000 --insecure my-tasks
+zqq-zentao --config ./zentao.json whoami
+```
 
 TLS 跳过证书校验（自签 / 内网 HTTPS 常用）：
 

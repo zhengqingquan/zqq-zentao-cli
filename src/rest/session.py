@@ -16,11 +16,19 @@ from ..config import USER_AGENT, resolve_password, resolve_token
 
 
 class RestSession:
-    def __init__(self, server: str, insecure: bool = True, *, account: str = ""):
+    def __init__(
+        self,
+        server: str,
+        insecure: bool = True,
+        *,
+        account: str = "",
+        timeout: float = 60.0,
+    ):
         self.server = server.rstrip("/")
         self.account = account
         self.token = ""
         self.insecure = insecure
+        self.timeout = timeout
         self._ssl = ssl._create_unverified_context() if insecure else None
 
     def _url(self, path: str) -> str:
@@ -61,7 +69,7 @@ class RestSession:
 
         req = urllib.request.Request(url, data=data, headers=hdrs, method=method.upper())
         try:
-            with urllib.request.urlopen(req, context=self._ssl, timeout=60) as res:
+            with urllib.request.urlopen(req, context=self._ssl, timeout=self.timeout) as res:
                 body = res.read()
                 status = res.status
                 ctype = res.headers.get("Content-Type", "")

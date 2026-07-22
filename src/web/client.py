@@ -26,11 +26,18 @@ from .session import Session
 class WebClient:
     backend = "web"
 
-    def __init__(self, profile: dict[str, str] | None = None, *, insecure: bool | None = None):
+    def __init__(
+        self,
+        profile: dict[str, str] | None = None,
+        *,
+        insecure: bool | None = None,
+        timeout: float | None = None,
+    ):
         self.profile = profile or load_profile()
         self._sess = Session(
             self.profile["server"],
             insecure=insecure_ssl() if insecure is None else insecure,
+            timeout=60.0 if timeout is None else timeout,
         )
         self._logged_in = False
 
