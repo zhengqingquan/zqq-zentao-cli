@@ -57,7 +57,7 @@ Accept: application/json
 
 | 请求 | 行为（源码 `tasks.php`） |
 |------|--------------------------|
-| `GET /tasks` | 默认「我的任务」：`type` 默认 `assignedTo`；`order`/`page`/`limit` |
+| `GET /tasks` | 默认「我的任务」。开源 `tasks.php` 调 `my->task` **参数错位**（`page`→`recPerPage`），本工具用 query 绕过并一次拉全；`tasks --page/--limit` 在客户端切片 |
 | `GET /executions/{id}/tasks` | 某执行下任务；`status` 默认 `all`；默认 `limit=100` |
 | `GET /tasks?search=1&…` | 条件搜索：`pri`/`assignedTo`/`status`/`id`/`name`（及对应 List 参数） |
 | `POST /executions/{id}/tasks` | 创建任务；必填约 `name,assignedTo,type,estStarted,deadline` |

@@ -141,36 +141,110 @@ class RestClient:
             "profile": profile,
         }
 
+    def _list_my_tasks_raw(self, *, rec_per_page: int = 200) -> dict[str, Any]:
+        """Load assigned tasks via GET /tasks, working around APIv1 arg swap.
+
+        ``tasksEntry`` calls ``my->task(type, order, total, limit, page)`` but
+        ``my::task`` expects ``(browseType, param, orderBy, recTotal, recPerPage,
+        pageID)``. So query ``page`` is treated as ``recPerPage``, and ``pageID``
+        is always 1. We set ``page=<size>`` to fetch up to that many rows once.
+        """
+        size = max(1, int(rec_per_page))
+        data = self.list_resource(
+            "tasks",
+            page=1,
+            limit=size,
+            query={
+                "type": "assignedTo",
+                "order": "0",
+                "total": "id_desc",
+                "limit": "0",
+                "page": str(size),
+            },
+        )
+        rows = data.get("tasks") or []
+        total = int(data.get("total") or len(rows))
+        # If server reports more than we got, retry with total as page size.
+        if total > len(rows):
+            data = self.list_resource(
+                "tasks",
+                page=1,
+                limit=total,
+                query={
+                    "type": "assignedTo",
+                    "order": "0",
+                    "total": "id_desc",
+                    "limit": "0",
+                    "page": str(total),
+                },
+            )
+        return data
+
     def my_tasks(self) -> list[dict[str, Any]]:
-        """Prefer GET /tasks filtered by assignee; /users/{account}/tasks is 404 on many servers."""
+        """All tasks assigned to me."""
         account = self.profile["account"]
-        data = self.list_resource("tasks", page=1, limit=200)
+        data = self._list_my_tasks_raw(rec_per_page=200)
         rows = data.get("tasks") or []
         mine = [x for x in rows if _assigned_account(x) == account]
-        # Some servers already scope /tasks to current user; if filter empties a non-empty list, keep all.
         if rows and not mine:
             mine = rows
         return [summarize_rest_task(x) for x in mine]
 
     def list_tasks(self, *, page: int = 1, limit: int = 100) -> dict[str, Any]:
-        data = self.list_resource("tasks", page=page, limit=limit)
+        """Paginated my-tasks list (client-side page after full fetch workaround)."""
+        page = max(1, int(page))
+        limit = max(1, int(limit))
+        need = page * limit
+        data = self._list_my_tasks_raw(rec_per_page=max(need, limit, 100))
         rows = data.get("tasks") or []
+        total = int(data.get("total") or len(rows))
+        start = (page - 1) * limit
+        chunk = rows[start : start + limit]
         return {
-            **data,
-            "tasks": [summarize_rest_task(x) for x in rows],
+            "page": page,
+            "total": total,
+            "limit": limit,
+            "tasks": [summarize_rest_task(x) for x in chunk],
+            "backend": self.backend,
         }
 
     def execution_tasks(self, execution_id: str | int) -> list[dict[str, Any]]:
-        data = self.list_resource(
-            "tasks",
-            page=1,
-            limit=200,
-            scopes={"execution": execution_id},
-        )
-        rows = data.get("tasks") or []
-        if not rows:
-            raise SystemExit(f"Failed to parse REST execution task list. raw={data!r}"[:200])
-        return [summarize_rest_task(x) for x in rows]
+        """Tasks under one execution (auto-paginate if server truncates)."""
+        page = 1
+        limit = 200
+        all_rows: list[dict[str, Any]] = []
+        seen: set[Any] = set()
+        raw_last: Any = None
+        while page <= 100:
+            data = self.list_resource(
+                "tasks",
+                page=page,
+                limit=limit,
+                scopes={"execution": execution_id},
+            )
+            raw_last = data
+            rows = data.get("tasks") or []
+            if not rows:
+                break
+            for row in rows:
+                tid = row.get("id")
+                if tid in seen:
+                    continue
+                seen.add(tid)
+                all_rows.append(row)
+            total = int(data.get("total") or 0)
+            if total and len(all_rows) >= total:
+                break
+            if len(rows) < int(data.get("limit") or limit):
+                break
+            page += 1
+
+        if not all_rows:
+            raise SystemExit(
+                f"Failed to parse REST execution task list. raw={raw_last!r}"[:200]
+            )
+        return [summarize_rest_task(x) for x in all_rows]
+
 
     def get_task(self, task_id: str | int) -> dict[str, Any]:
         return self.get_resource("tasks", task_id)
