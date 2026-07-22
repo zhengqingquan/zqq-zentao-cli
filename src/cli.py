@@ -11,6 +11,7 @@ Auth:
   - TLS: --insecure / --secure / ZENTAO_INSECURE (default skip verify)
   - Global (aligned with official zentao-cli):
       -V/--version-flag, --format, --silent, --timeout, --config, --machine-readable
+      --pick <fields> for table column selection
 
 Never print Cookie / password / Token.
 """
@@ -35,6 +36,7 @@ from .services import bugs as bug_svc
 from .services import comments as comment_svc
 from .services import resources as resource_svc
 from .services import tasks as task_svc
+from .user_resolve import resolve_optional
 from .web.parse import strip_tags
 
 _SCOPE_FLAGS = (
@@ -47,6 +49,21 @@ _SCOPE_FLAGS = (
 
 _TASK_FIELDS = ["id", "status", "pri", "deadline", "executionName", "name"]
 _BUG_FIELDS = ["id", "status", "severity", "pri", "productName", "title"]
+_STORY_FIELDS = ["id", "status", "pri", "stage", "title"]
+_USER_FIELDS = ["account", "realname"]
+
+_DEFAULT_LIST_FIELDS: dict[str, list[str]] = {
+    "tasks": _TASK_FIELDS,
+    "my-tasks": _TASK_FIELDS,
+    "bugs": _BUG_FIELDS,
+    "my-bugs": _BUG_FIELDS,
+    "stories": _STORY_FIELDS,
+    "users": _USER_FIELDS,
+}
+
+_QUERY_HELPS = {
+    "search": "Search users by account / realname / pinyin (client-side)",
+}
 
 
 def _normalize_task_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -98,6 +115,21 @@ def _normalize_comment_rows(data: list[Any]) -> list[dict[str, Any]]:
     return rows
 
 
+def _parse_pick(args: argparse.Namespace) -> list[str] | None:
+    raw = getattr(args, "pick", None)
+    if not raw:
+        return None
+    fields = [p.strip() for p in str(raw).split(",") if p.strip()]
+    return fields or None
+
+
+def _fields_for(cmd: str, args: argparse.Namespace) -> list[str] | None:
+    picked = _parse_pick(args)
+    if picked:
+        return picked
+    return _DEFAULT_LIST_FIELDS.get(cmd)
+
+
 def _add_page_limit(parser: argparse.ArgumentParser, *, limit: int = 50) -> None:
     parser.add_argument("--page", type=int, default=1, help="Page number (default 1)")
     parser.add_argument(
@@ -119,11 +151,19 @@ def _add_user_filter_flags(
     parser: argparse.ArgumentParser, filter_names: tuple[str, ...]
 ) -> None:
     helps = {
-        "assignedTo": "Filter by assignee account",
-        "openedBy": "Filter by opener account",
+        "assignedTo": "Filter by assignee (account or realname)",
+        "openedBy": "Filter by opener (account or realname)",
     }
     for name in filter_names:
         parser.add_argument(f"--{name}", default=None, help=helps.get(name, f"Filter by {name}"))
+
+
+def _add_status_flag(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--status",
+        default=None,
+        help="Filter by status (comma-separated, e.g. wait,doing)",
+    )
 
 
 def _register_resource_parsers(sub: argparse._SubParsersAction[Any]) -> None:
@@ -140,12 +180,17 @@ def _register_resource_parsers(sub: argparse._SubParsersAction[Any]) -> None:
                 _add_scope_flags(p, res.scopes)
             if res.user_filters:
                 _add_user_filter_flags(p, res.user_filters)
+                _add_status_flag(p)
             for qname in res.query_params:
                 req = qname in res.required_query
                 p.add_argument(
                     f"--{qname}",
                     required=req,
-                    help=f"Query param {qname}" + (" (required)" if req else ""),
+                    default=None,
+                    help=_QUERY_HELPS.get(
+                        qname,
+                        f"Query param {qname}" + (" (required)" if req else ""),
+                    ),
                 )
             registered.add(res.list_cmd)
 
@@ -201,6 +246,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="Machine-readable mode: compact output, disable colors",
     )
     p.add_argument(
+        "--pick",
+        default=None,
+        metavar="fields",
+        help="Comma-separated fields for table output (overrides defaults)",
+    )
+    p.add_argument(
         "--backend",
         choices=("web", "rest", "auto"),
         default=None,
@@ -237,6 +288,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p_tasks.add_argument("--execution", "-e", help="Execution ID")
     _add_user_filter_flags(p_tasks, ("assignedTo", "openedBy"))
+    _add_status_flag(p_tasks)
     _add_page_limit(p_tasks, limit=100)
 
     p_task = sub.add_parser("task", help="Task detail (JSON; REST returns full fields)")
@@ -279,6 +331,33 @@ def _cli_insecure(args: argparse.Namespace) -> bool | None:
     return None
 
 
+def _resolve_task_user_filters(client: Any, args: argparse.Namespace) -> tuple[str | None, str | None]:
+    """Resolve assignedTo/openedBy via REST list_users when available."""
+    assigned_to = getattr(args, "assignedTo", None)
+    opened_by = getattr(args, "openedBy", None)
+    if not assigned_to and not opened_by:
+        return None, None
+    list_users = getattr(client, "list_users", None)
+    if list_users is None:
+        return (
+            (str(assigned_to).strip() or None) if assigned_to else None,
+            (str(opened_by).strip() or None) if opened_by else None,
+        )
+    try:
+        at = resolve_optional(list_users, assigned_to)
+        ob = resolve_optional(list_users, opened_by)
+        return at, ob
+    except SystemExit:
+        # Web-only clients cannot list users; fall back to literal token
+        # only when backend is web (execution path).
+        if getattr(client, "backend", None) == "web":
+            return (
+                (str(assigned_to).strip() or None) if assigned_to else None,
+                (str(opened_by).strip() or None) if opened_by else None,
+            )
+        raise
+
+
 def _dispatch_registry(client: Any, args: argparse.Namespace) -> bool:
     """Handle registry-driven list/detail commands. Returns True if handled."""
     list_res = resource_by_list_cmd(args.cmd)
@@ -293,6 +372,7 @@ def _dispatch_registry(client: Any, args: argparse.Namespace) -> bool:
             if list_res.user_filters
             else {"assigned_to": None, "opened_by": None}
         )
+        status = resource_svc.status_from_args(args) if list_res.user_filters else None
         page = getattr(args, "page", 1)
         limit = getattr(args, "limit", 50)
         emit(
@@ -306,8 +386,10 @@ def _dispatch_registry(client: Any, args: argparse.Namespace) -> bool:
                 query=query,
                 assigned_to=filters.get("assigned_to"),
                 opened_by=filters.get("opened_by"),
+                status=status,
             ),
             is_list=True,
+            fields=_fields_for(args.cmd, args),
         )
         return True
 
@@ -360,16 +442,25 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.cmd == "my-tasks":
-        emit(_normalize_task_rows(task_svc.my_tasks(client)), is_list=True, fields=_TASK_FIELDS)
+        emit(
+            _normalize_task_rows(task_svc.my_tasks(client)),
+            is_list=True,
+            fields=_fields_for("my-tasks", args),
+        )
         return 0
 
     if args.cmd == "my-bugs":
-        emit(_normalize_bug_rows(bug_svc.my_bugs(client)), is_list=True, fields=_BUG_FIELDS)
+        emit(
+            _normalize_bug_rows(bug_svc.my_bugs(client)),
+            is_list=True,
+            fields=_fields_for("my-bugs", args),
+        )
         return 0
 
     if args.cmd == "tasks":
-        assigned_to = getattr(args, "assignedTo", None)
-        opened_by = getattr(args, "openedBy", None)
+        assigned_to, opened_by = _resolve_task_user_filters(client, args)
+        status = resource_svc.status_from_args(args)
+        fields = _fields_for("tasks", args)
         if args.execution:
             emit(
                 _normalize_task_rows(
@@ -378,10 +469,11 @@ def main(argv: list[str] | None = None) -> int:
                         args.execution,
                         assigned_to=assigned_to,
                         opened_by=opened_by,
+                        status=status,
                     )
                 ),
                 is_list=True,
-                fields=_TASK_FIELDS,
+                fields=fields,
             )
         else:
             emit(
@@ -391,8 +483,10 @@ def main(argv: list[str] | None = None) -> int:
                     limit=args.limit,
                     assigned_to=assigned_to,
                     opened_by=opened_by,
+                    status=status,
                 ),
                 is_list=True,
+                fields=fields,
             )
         return 0
 

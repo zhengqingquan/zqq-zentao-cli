@@ -29,6 +29,7 @@ class ZenTaoClient(Protocol):
         limit: int = 100,
         assigned_to: str | None = None,
         opened_by: str | None = None,
+        status: str | None = None,
     ) -> dict[str, Any]: ...
 
     def execution_tasks(self, execution_id: str | int) -> list[dict[str, Any]]: ...

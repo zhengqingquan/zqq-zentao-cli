@@ -14,6 +14,7 @@ ZenTao dual-backend CLI: **Web (PATHINFO + Cookie)** and **REST (Token)**.
 - Web PATHINFO API notes: [docs/zentao-apis.md](./docs/zentao-apis.md)
 - REST API v1 (from 22.3 source): [docs/zentao-rest-apis.md](./docs/zentao-rest-apis.md)
 - **CLI contract (phased)**: [docs/cli-surface.md](./docs/cli-surface.md)
+- **Handoff / TODO**: [docs/handoff.md](./docs/handoff.md)
 
 ## Install
 
@@ -67,6 +68,7 @@ Env-only setups still work; unauthenticated commands hint you to run `zqq-zentao
 | `--timeout <ms>` | Request timeout in milliseconds (default 60000) |
 | `--config <file>` | Custom config file (or `ZENTAO_CONFIG_FILE`) |
 | `--machine-readable` | Compact output, disable colors |
+| `--pick <fields>` | Table columns (comma-separated; overrides defaults) |
 | `-h` / `--help` | Show help |
 
 ```bash
@@ -119,9 +121,12 @@ zqq-zentao my-tasks
 zqq-zentao my-bugs
 zqq-zentao tasks
 zqq-zentao tasks --assignedTo alice
+zqq-zentao tasks --assignedTo 张三 --status wait,doing
 zqq-zentao tasks --execution 1664 --openedBy bob
-zqq-zentao bugs --product 12 --assignedTo alice
+zqq-zentao bugs --product 12 --assignedTo alice --status active
 zqq-zentao stories --project 5 --openedBy bob
+zqq-zentao --pick id,status,title bugs --product 12
+zqq-zentao users --search 张
 zqq-zentao task 39980
 zqq-zentao projects --limit 5
 zqq-zentao projects --program 1
@@ -153,7 +158,7 @@ zqq-zentao comment edit 1063694 "updated comment"
 | `tasks` | REST task list; optional `--assignedTo` (others) | **rest only** |
 | `tasks -e <id>` | Tasks under an execution; `--assignedTo` / `--openedBy` | web / rest |
 | `task <id>` | Task detail (REST returns full fields) | web / rest |
-| `users` / `user <account>` | User list / detail | **rest only** |
+| `users` / `user <account>` | User list (optional `--search`) / detail | **rest only** |
 | `projects` | Project list (optional `--program` / `--product`) | **rest only** |
 | `project <id>` | Project detail | **rest only** |
 | `programs` / `program <id>` | Program list / detail | **rest only** |
@@ -186,6 +191,7 @@ docs/
   zentao-apis.md      # Web PATHINFO notes
   zentao-rest-apis.md # REST API v1 (from 22.3 source)
   cli-surface.md      # CLI contract (my-* / phased CRUD)
+  handoff.md          # Handoff: status and TODO
 LICENSE              # MIT
 ```
 

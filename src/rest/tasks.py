@@ -65,22 +65,32 @@ def fetch_my_tasks(list_resource: ListResourceFn, account: str) -> list[dict[str
 
 
 def list_my_tasks(
-    list_resource: ListResourceFn, *, page: int = 1, limit: int = 100
+    list_resource: ListResourceFn,
+    *,
+    page: int = 1,
+    limit: int = 100,
+    status: str | None = None,
 ) -> dict[str, Any]:
     """Paginated my-tasks (client-side slice after full-fetch workaround)."""
+    from ..list_filter import filter_rows, slice_rows
+
     page = max(1, int(page))
     limit = max(1, int(limit))
-    need = page * limit
-    data = _list_my_tasks_raw(list_resource, rec_per_page=max(need, limit, 100))
-    rows = data.get("tasks") or []
-    total = int(data.get("total") or len(rows))
-    start = (page - 1) * limit
-    chunk = rows[start : start + limit]
+    data = _list_my_tasks_raw(list_resource, rec_per_page=max(page * limit, limit, 100))
+    rows = [summarize_task(x) for x in (data.get("tasks") or [])]
+    # If server reported more than we got, bump fetch once.
+    total_hint = int(data.get("total") or len(rows))
+    if total_hint > len(rows):
+        data = _list_my_tasks_raw(list_resource, rec_per_page=total_hint)
+        rows = [summarize_task(x) for x in (data.get("tasks") or [])]
+    if status and status.strip():
+        rows = filter_rows(rows, status=status.strip())
+    chunk, total = slice_rows(rows, page=page, limit=limit)
     return {
         "page": page,
         "total": total,
         "limit": limit,
-        "tasks": [summarize_task(x) for x in chunk],
+        "tasks": chunk,
     }
 
 
@@ -125,14 +135,22 @@ def fetch_execution_tasks(
 
 
 def fetch_search_tasks(
-    list_resource: ListResourceFn, *, assigned_to: str | None = None
+    list_resource: ListResourceFn,
+    *,
+    assigned_to: str | None = None,
+    status: str | None = None,
 ) -> list[dict[str, Any]]:
-    """All tasks from GET /tasks?search=1 (optional assignedTo); canonical rows."""
+    """All tasks from GET /tasks?search=1 (optional assignedTo/status); canonical rows."""
     from ..list_filter import filter_rows
 
     query: dict[str, str] = {"search": "1"}
     if assigned_to and assigned_to.strip():
         query["assignedTo"] = assigned_to.strip()
+    if status and status.strip():
+        # Server accepts a single status; multi-value filtered client-side.
+        parts = [p.strip() for p in status.split(",") if p.strip()]
+        if len(parts) == 1:
+            query["status"] = parts[0]
 
     all_rows: list[dict[str, Any]] = []
     seen: set[Any] = set()
@@ -161,8 +179,11 @@ def fetch_search_tasks(
             break
         cur += 1
 
-    if assigned_to and assigned_to.strip():
-        all_rows = filter_rows(all_rows, assigned_to=assigned_to.strip())
+    all_rows = filter_rows(
+        all_rows,
+        assigned_to=(assigned_to or "").strip() or None,
+        status=(status or "").strip() or None,
+    )
     return [summarize_task(x) for x in all_rows]
 
 
@@ -171,13 +192,16 @@ def search_tasks(
     *,
     assigned_to: str | None = None,
     opened_by: str | None = None,
+    status: str | None = None,
     page: int = 1,
     limit: int = 100,
 ) -> dict[str, Any]:
-    """Paginated search list (assignedTo via API; openedBy client-side)."""
+    """Paginated search list (assignedTo/status via API; openedBy client-side)."""
     from ..list_filter import filter_rows, slice_rows
 
-    rows = fetch_search_tasks(list_resource, assigned_to=assigned_to)
+    rows = fetch_search_tasks(
+        list_resource, assigned_to=assigned_to, status=status
+    )
     if opened_by and opened_by.strip():
         rows = filter_rows(rows, opened_by=opened_by.strip())
     chunk, total = slice_rows(rows, page=page, limit=limit)

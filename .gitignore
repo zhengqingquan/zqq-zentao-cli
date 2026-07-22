@@ -48,6 +48,7 @@ har/
 # IDE / editor
 .idea/
 .vscode/
+.cursor/
 *.swp
 *.swo
 *~

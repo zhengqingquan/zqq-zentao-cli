@@ -8,45 +8,27 @@ from typing import Any
 
 from ..task_shape import summarize_task
 from .comments import list_comments
-from .parse import (
-    looks_auth_fail,
-    parse_dtable_rows,
-    parse_task_view_html,
-    strip_tags,
-    zin_main_html,
-)
+from .lists import fetch_dtable_list
+from .parse import looks_auth_fail, parse_task_view_html, strip_tags, zin_main_html
 from .session import Session
 
 
 def fetch_my_tasks(sess: Session) -> list[dict[str, Any]]:
-    r = sess.request("GET", "/my-work-task-assignedTo.html?zin=1")
-    if looks_auth_fail(r):
-        raise SystemExit(f"my-tasks auth fail HTTP {r['status']}")
-    html = zin_main_html(r["data"]) or (r["raw"] if isinstance(r["data"], str) else "")
-    if not html and isinstance(r["data"], str):
-        html = r["data"]
-    rows = parse_dtable_rows(html)
-    if not rows:
-        raise SystemExit(
-            f"Failed to parse my-tasks list HTTP {r['status']} (need zin dtable). "
-            f"raw[:120]={r['raw'][:120]!r}"
-        )
-    return [summarize_task(x) for x in rows]
+    return fetch_dtable_list(
+        sess,
+        "/my-work-task-assignedTo.html?zin=1",
+        label="my-tasks",
+        summarize=summarize_task,
+    )
 
 
 def fetch_execution_tasks(sess: Session, execution_id: str | int) -> list[dict[str, Any]]:
-    r = sess.request("GET", f"/execution-task-{execution_id}.html?zin=1")
-    if looks_auth_fail(r):
-        raise SystemExit(f"execution tasks auth fail HTTP {r['status']}")
-    html = zin_main_html(r["data"]) or ""
-    if not html and isinstance(r["data"], str):
-        html = r["data"]
-    rows = parse_dtable_rows(html)
-    if not rows:
-        raise SystemExit(
-            f"Failed to parse execution task list HTTP {r['status']}. raw[:120]={r['raw'][:120]!r}"
-        )
-    return [summarize_task(x) for x in rows]
+    return fetch_dtable_list(
+        sess,
+        f"/execution-task-{execution_id}.html?zin=1",
+        label="execution tasks",
+        summarize=summarize_task,
+    )
 
 
 def fetch_task(sess: Session, task_id: str | int) -> dict[str, Any]:

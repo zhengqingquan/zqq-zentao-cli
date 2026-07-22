@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-from zqq_zentao_cli.list_filter import filter_rows, row_account, slice_rows
+from zqq_zentao_cli.list_filter import apply_user_filters, filter_rows, row_account, slice_rows
 from zqq_zentao_cli.rest.tasks import search_tasks
 
 
@@ -23,6 +23,36 @@ def test_filter_rows_assigned_and_opened() -> None:
     assert [r["id"] for r in filter_rows(rows, assigned_to="alice")] == [1, 2]
     assert [r["id"] for r in filter_rows(rows, opened_by="bob")] == [1, 3]
     assert [r["id"] for r in filter_rows(rows, assigned_to="alice", opened_by="carol")] == [2]
+
+
+def test_filter_rows_status() -> None:
+    rows = [
+        {"id": 1, "status": "wait"},
+        {"id": 2, "status": "doing"},
+        {"id": 3, "status": "done"},
+    ]
+    assert [r["id"] for r in filter_rows(rows, status="wait,doing")] == [1, 2]
+    assert [r["id"] for r in filter_rows(rows, status="done")] == [3]
+
+
+def test_apply_user_filters_with_status() -> None:
+    payload = {
+        "tasks": [
+            {"id": 1, "assignedTo": "alice", "status": "wait"},
+            {"id": 2, "assignedTo": "alice", "status": "done"},
+            {"id": 3, "assignedTo": "bob", "status": "wait"},
+        ]
+    }
+    out = apply_user_filters(
+        payload,
+        "tasks",
+        assigned_to="alice",
+        status="wait",
+        page=1,
+        limit=10,
+    )
+    assert out["total"] == 1
+    assert out["tasks"][0]["id"] == 1
 
 
 def test_slice_rows() -> None:
@@ -51,12 +81,14 @@ def test_search_tasks_uses_search_query_and_filters() -> None:
                 {
                     "id": 1,
                     "name": "t1",
+                    "status": "doing",
                     "assignedTo": {"account": "alice"},
                     "openedBy": {"account": "bob"},
                 },
                 {
                     "id": 2,
                     "name": "t2",
+                    "status": "wait",
                     "assignedTo": {"account": "alice"},
                     "openedBy": {"account": "carol"},
                 },
@@ -65,10 +97,16 @@ def test_search_tasks_uses_search_query_and_filters() -> None:
         }
 
     out = search_tasks(
-        fake_list_resource, assigned_to="alice", opened_by="carol", page=1, limit=10
+        fake_list_resource,
+        assigned_to="alice",
+        opened_by="carol",
+        status="wait",
+        page=1,
+        limit=10,
     )
     assert out["total"] == 1
     assert out["tasks"][0]["id"] == 2
     assert calls and calls[0] is not None
     assert calls[0]["search"] == "1"
     assert calls[0]["assignedTo"] == "alice"
+    assert calls[0]["status"] == "wait"

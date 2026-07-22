@@ -33,8 +33,42 @@ def test_help_lists_global_options() -> None:
         "--timeout",
         "--config",
         "--machine-readable",
+        "--pick",
     ):
         assert flag in help_text
+
+
+def test_tasks_parser_has_status() -> None:
+    parser = build_parser()
+    args = parser.parse_args(["tasks", "--status", "wait,doing", "--assignedTo", "张三"])
+    assert args.status == "wait,doing"
+    assert args.assignedTo == "张三"
+
+
+def test_bugs_parser_has_status_and_users_search() -> None:
+    parser = build_parser()
+    bugs = parser.parse_args(["bugs", "--product", "1", "--status", "active"])
+    assert bugs.status == "active"
+    users = parser.parse_args(["users", "--search", "张"])
+    assert users.search == "张"
+
+
+def test_pick_fields_parse() -> None:
+    from zqq_zentao_cli.cli import _fields_for, _parse_pick
+
+    parser = build_parser()
+    args = parser.parse_args(["--pick", "id,status,title", "tasks"])
+    assert _parse_pick(args) == ["id", "status", "title"]
+    assert _fields_for("tasks", args) == ["id", "status", "title"]
+    args2 = parser.parse_args(["tasks"])
+    assert _fields_for("tasks", args2) == [
+        "id",
+        "status",
+        "pri",
+        "deadline",
+        "executionName",
+        "name",
+    ]
 
 
 def test_render_markdown_list() -> None:

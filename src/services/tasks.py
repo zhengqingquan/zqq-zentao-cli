@@ -21,12 +21,14 @@ def list_tasks(
     limit: int = 100,
     assigned_to: str | None = None,
     opened_by: str | None = None,
+    status: str | None = None,
 ) -> dict[str, Any]:
     return client.list_tasks(
         page=page,
         limit=limit,
         assigned_to=assigned_to,
         opened_by=opened_by,
+        status=status,
     )
 
 
@@ -36,12 +38,14 @@ def execution_tasks(
     *,
     assigned_to: str | None = None,
     opened_by: str | None = None,
+    status: str | None = None,
 ) -> list[dict[str, Any]]:
     rows = client.execution_tasks(execution_id)
     at = (assigned_to or "").strip() or None
     ob = (opened_by or "").strip() or None
-    if at or ob:
-        return filter_rows(rows, assigned_to=at, opened_by=ob)
+    st = (status or "").strip() or None
+    if at or ob or st:
+        return filter_rows(rows, assigned_to=at, opened_by=ob, status=st)
     return rows
 
 

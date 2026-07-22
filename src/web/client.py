@@ -144,6 +144,7 @@ class WebClient:
         limit: int = 100,
         assigned_to: str | None = None,
         opened_by: str | None = None,
+        status: str | None = None,
     ) -> dict[str, Any]:
         raise SystemExit("tasks without --execution requires --backend rest")
 

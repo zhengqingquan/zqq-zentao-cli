@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Client-side user-field filters for list payloads (assignedTo / openedBy)."""
+"""Client-side user-field / status filters for list payloads."""
 
 from __future__ import annotations
 
@@ -17,22 +17,43 @@ def row_account(row: dict[str, Any], field: str) -> str:
     return str(val).strip()
 
 
+def parse_status_set(status: str | None) -> set[str] | None:
+    """Parse comma-separated statuses into a non-empty set, or None."""
+    if status is None:
+        return None
+    parts = {p.strip() for p in str(status).split(",") if p.strip()}
+    return parts or None
+
+
+def row_status(row: dict[str, Any]) -> str:
+    val = row.get("status")
+    if isinstance(val, dict):
+        return str(val.get("code") or val.get("name") or val.get("status") or "").strip()
+    if val is None:
+        return ""
+    return str(val).strip()
+
+
 def filter_rows(
     rows: list[dict[str, Any]],
     *,
     assigned_to: str | None = None,
     opened_by: str | None = None,
+    status: str | None = None,
 ) -> list[dict[str, Any]]:
-    """Keep rows matching optional account filters (case-sensitive account)."""
+    """Keep rows matching optional account / status filters (case-sensitive accounts)."""
     want_assigned = (assigned_to or "").strip() or None
     want_opened = (opened_by or "").strip() or None
-    if not want_assigned and not want_opened:
+    want_status = parse_status_set(status)
+    if not want_assigned and not want_opened and not want_status:
         return rows
     out: list[dict[str, Any]] = []
     for row in rows:
         if want_assigned and row_account(row, "assignedTo") != want_assigned:
             continue
         if want_opened and row_account(row, "openedBy") != want_opened:
+            continue
+        if want_status and row_status(row) not in want_status:
             continue
         out.append(row)
     return out
@@ -58,6 +79,7 @@ def apply_user_filters(
     *,
     assigned_to: str | None = None,
     opened_by: str | None = None,
+    status: str | None = None,
     page: int | None = None,
     limit: int | None = None,
 ) -> dict[str, Any]:
@@ -66,7 +88,12 @@ def apply_user_filters(
     if not isinstance(rows, list):
         return payload
     dict_rows = [r for r in rows if isinstance(r, dict)]
-    filtered = filter_rows(dict_rows, assigned_to=assigned_to, opened_by=opened_by)
+    filtered = filter_rows(
+        dict_rows,
+        assigned_to=assigned_to,
+        opened_by=opened_by,
+        status=status,
+    )
     out = dict(payload)
     if page is not None and limit is not None:
         chunk, total = slice_rows(filtered, page=page, limit=limit)

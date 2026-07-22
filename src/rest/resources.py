@@ -161,6 +161,7 @@ _add(
         detail_path="/users/{id}",
         list_key="users",
         detail_keys=("user", "profile"),
+        query_params=("search",),
     )
 )
 _add(

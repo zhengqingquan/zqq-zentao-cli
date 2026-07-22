@@ -2,6 +2,8 @@
 
 本文档是 **zqq-zentao** 的目标命令面与产品边界。实现以本文为准；与当前代码不一致处标为「待实现」。
 
+接手开发请同时阅读 [handoff.md](./handoff.md)（待办勾选、已知坑、建议下一刀）。
+
 ## 定位
 
 **用命令行全面操作禅道**：在账号权限允许的前提下，覆盖组织内任意对象的查询、创建、更新、删除与状态流转——**不限于当前登录人自己的待办**。
@@ -73,24 +75,26 @@ zqq-zentao comment list|add|edit …
 
 **禁止**把「查别人」做成扫全站 `my-*`；应走 **scope + 过滤**（或后续 `user <account> tasks` 类组合，若实现则写入本文）。
 
-### 通用过滤（目标，⏳）
+### 通用过滤（目标）
 
 范围列表逐步支持与官方类似的过滤（名称以实机/REST 为准）：
 
 | 参数 | 含义 | 状态 |
 |------|------|------|
-| `--assignedTo <account>` | 指派给某人 | ✅ `tasks` / `bugs` / `stories` |
-| `--openedBy <account>` | 由某人创建 | ✅ `bugs` / `stories`；`tasks` 需配合 `-e` 或同时 `--assignedTo` |
+| `--assignedTo <account\|实名>` | 指派给某人（实名唯一则解析为账号） | ✅ `tasks` / `bugs` / `stories` |
+| `--openedBy <account\|实名>` | 由某人创建 | ✅ `bugs` / `stories`；`tasks` 需配合 `-e` 或同时 `--assignedTo` |
 | `--finishedBy` / `--resolvedBy` / `--closedBy` | 完成/解决/关闭人 | ⏳ |
-| `--status` / `--pri` / `--severity` | 状态与优先级等 | ⏳ |
-| `--search` / `--filter` | 关键词或表达式过滤（可对齐官方） | ⏳ |
-| `--pick` | 摘取字段 | ⏳ |
+| `--status` | 状态（逗号分隔多值，如 `wait,doing`） | ✅ `tasks` / `bugs` / `stories` |
+| `--pri` / `--severity` | 优先级等 | ⏳ |
+| `--search` | 关键词（`users --search` 按账号/姓名/拼音） | ✅ `users`；其它名词 ⏳ |
+| `--pick` | 摘取字段（全局，逗号分隔） | ✅ |
 
 说明：
 
-- `tasks --assignedTo`：REST `GET /tasks?search=1&assignedTo=…`，再客户端校对  
-- `bugs` / `stories`：在 scope 下列全量后客户端过滤（服务端 query 不可靠）  
+- `tasks --assignedTo`：先姓名→账号解析，再 REST `GET /tasks?search=1&assignedTo=…`，客户端校对；可加 `--status`
+- `bugs` / `stories`：在 scope 下列全量后客户端过滤（服务端 query 不可靠）
 - `tasks --openedBy` 单独使用时请加 `-e <executionId>`（全局 search 无 openedBy 字段）
+- 鉴权日志（`auth: rest-token(...)` 等）打在 **stderr**，勿与 stdout JSON 混用
 
 ---
 

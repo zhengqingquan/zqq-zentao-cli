@@ -14,6 +14,7 @@
 - Web PATHINFO 接口说明见 [docs/zentao-apis.md](./docs/zentao-apis.md)
 - REST API v1（22.3 源码整理）见 [docs/zentao-rest-apis.md](./docs/zentao-rest-apis.md)
 - **命令面契约（含分期）**见 [docs/cli-surface.md](./docs/cli-surface.md)
+- **交接 / 待办**见 [docs/handoff.md](./docs/handoff.md)
 
 ## 安装
 
@@ -67,6 +68,7 @@ zqq-zentao login -s https://zentao.example.com -u your_account -p your_password
 | `--timeout <ms>` | 请求超时（毫秒，默认 60000） |
 | `--config <file>` | 自定义配置文件（亦可用 `ZENTAO_CONFIG_FILE`） |
 | `--machine-readable` | 机器可读：紧凑 JSON、禁用颜色 |
+| `--pick <fields>` | 表格输出字段（逗号分隔；覆盖默认列） |
 | `-h` / `--help` | 显示帮助 |
 
 ```bash
@@ -119,9 +121,12 @@ zqq-zentao my-tasks
 zqq-zentao my-bugs
 zqq-zentao tasks
 zqq-zentao tasks --assignedTo alice
+zqq-zentao tasks --assignedTo 张三 --status wait,doing
 zqq-zentao tasks --execution 1664 --openedBy bob
-zqq-zentao bugs --product 12 --assignedTo alice
+zqq-zentao bugs --product 12 --assignedTo alice --status active
 zqq-zentao stories --project 5 --openedBy bob
+zqq-zentao --pick id,status,title bugs --product 12
+zqq-zentao users --search 张
 zqq-zentao task 39980
 zqq-zentao projects --limit 5
 zqq-zentao projects --program 1
@@ -153,7 +158,7 @@ zqq-zentao comment edit 1063694 "新备注"
 | `tasks` | REST 任务列表；可 `--assignedTo`（查别人） | **仅 rest** |
 | `tasks -e <id>` | 某执行下的任务；可 `--assignedTo` / `--openedBy` | web / rest |
 | `task <id>` | 任务详情（REST 返回完整字段） | web / rest |
-| `users` / `user <account>` | 用户列表 / 详情 | **仅 rest** |
+| `users` / `user <account>` | 用户列表（可 `--search`）/ 详情 | **仅 rest** |
 | `projects` | 项目列表（可选 `--program` / `--product`） | **仅 rest** |
 | `project <id>` | 项目详情 | **仅 rest** |
 | `programs` / `program <id>` | 项目集列表 / 详情 | **仅 rest** |
@@ -186,6 +191,7 @@ docs/
   zentao-apis.md      # Web PATHINFO 接口说明
   zentao-rest-apis.md # REST API v1（22.3 源码整理）
   cli-surface.md      # 命令面契约（my-* / CRUD 分期）
+  handoff.md          # 交接：待办与现状
 LICENSE              # MIT
 ```
 

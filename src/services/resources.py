@@ -5,10 +5,11 @@ from __future__ import annotations
 
 from typing import Any
 
-from ..list_filter import filter_rows, slice_rows
+from ..list_filter import apply_user_filters
 from ..protocol import ZenTaoClient
 from ..rest.client import RestClient
 from ..rest.resources import Resource, resource_by_detail_cmd, resource_by_list_cmd
+from ..user_resolve import resolve_optional, search_users
 
 
 def _as_rest(client: ZenTaoClient) -> RestClient:
@@ -28,14 +29,34 @@ def list_by_cmd(
     query: dict[str, str] | None = None,
     assigned_to: str | None = None,
     opened_by: str | None = None,
+    status: str | None = None,
 ) -> dict[str, Any]:
     res = resource_by_list_cmd(cmd)
     if res is None:
         raise SystemExit(f"Unknown list command: {cmd}")
     rest = _as_rest(client)
-    at = (assigned_to or "").strip() or None
-    ob = (opened_by or "").strip() or None
-    if (at or ob) and res.list_key and res.paginated:
+
+    # users --search: client-side scan (REST /users has no search param).
+    q = dict(query or {})
+    search_q = q.pop("search", None) if q else None
+    if res.key == "users" and search_q:
+        from ..list_filter import slice_rows
+
+        rows = search_users(rest.list_users, search_q)
+        chunk, total = slice_rows(rows, page=page, limit=limit)
+        return {
+            "users": chunk,
+            "page": max(1, int(page)),
+            "total": total,
+            "limit": max(1, int(limit)),
+            "backend": rest.backend,
+        }
+
+    at = resolve_optional(rest.list_users, assigned_to) if assigned_to else None
+    ob = resolve_optional(rest.list_users, opened_by) if opened_by else None
+    st = (status or "").strip() or None
+
+    if (at or ob or st) and res.list_key and res.paginated:
         return _list_all_then_filter(
             rest,
             res,
@@ -43,9 +64,10 @@ def list_by_cmd(
             limit=limit,
             scopes=scopes,
             path_param=path_param,
-            query=query,
+            query=q or None,
             assigned_to=at,
             opened_by=ob,
+            status=st,
         )
     return rest.list_resource(
         res.key,
@@ -53,7 +75,7 @@ def list_by_cmd(
         limit=limit,
         scopes=scopes,
         path_param=path_param,
-        query=query,
+        query=q or None,
     )
 
 
@@ -68,8 +90,9 @@ def _list_all_then_filter(
     query: dict[str, str] | None,
     assigned_to: str | None,
     opened_by: str | None,
+    status: str | None = None,
 ) -> dict[str, Any]:
-    """Paginate the full scoped list, then apply user filters + client page."""
+    """Paginate the full scoped list, then apply filters + client page."""
     assert res.list_key
     all_rows: list[dict[str, Any]] = []
     seen: set[Any] = set()
@@ -102,15 +125,19 @@ def _list_all_then_filter(
             break
         cur += 1
 
-    filtered = filter_rows(all_rows, assigned_to=assigned_to, opened_by=opened_by)
-    chunk, total = slice_rows(filtered, page=page, limit=limit)
-    return {
-        res.list_key: chunk,
-        "page": max(1, int(page)),
-        "total": total,
-        "limit": max(1, int(limit)),
+    payload = {
+        res.list_key: all_rows,
         "backend": rest.backend,
     }
+    return apply_user_filters(
+        payload,
+        res.list_key,
+        assigned_to=assigned_to,
+        opened_by=opened_by,
+        status=status,
+        page=page,
+        limit=limit,
+    )
 
 
 def get_by_cmd(client: ZenTaoClient, cmd: str, resource_id: str | int) -> dict[str, Any]:
@@ -150,3 +177,10 @@ def user_filters_from_args(args: Any, res: Resource) -> dict[str, str | None]:
         elif name == "openedBy" and val:
             out["opened_by"] = str(val)
     return out
+
+
+def status_from_args(args: Any) -> str | None:
+    val = getattr(args, "status", None)
+    if val is None or val == "":
+        return None
+    return str(val)

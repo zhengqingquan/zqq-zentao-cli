@@ -158,10 +158,12 @@ class RestClient:
         limit: int = 100,
         assigned_to: str | None = None,
         opened_by: str | None = None,
+        status: str | None = None,
     ) -> dict[str, Any]:
-        """Task list: my-tasks by default, or search/filter by account."""
+        """Task list: my-tasks by default, or search/filter by account/status."""
         at = (assigned_to or "").strip() or None
         ob = (opened_by or "").strip() or None
+        st = (status or "").strip() or None
         if ob and not at:
             raise SystemExit(
                 "tasks --openedBy without --execution requires --assignedTo "
@@ -173,12 +175,15 @@ class RestClient:
                 self.list_resource,
                 assigned_to=at,
                 opened_by=ob,
+                status=st,
                 page=page,
                 limit=limit,
             )
             out["backend"] = self.backend
             return out
-        out = tasks_api.list_my_tasks(self.list_resource, page=page, limit=limit)
+        out = tasks_api.list_my_tasks(
+            self.list_resource, page=page, limit=limit, status=st
+        )
         out["backend"] = self.backend
         return out
 
