@@ -208,7 +208,7 @@ zqq-zentao comment list|add|edit …
 | `bug` | ✅ | ✅ REST（`bug create\|update\|delete`，需 `--product` 创建） | ✅ `confirm` `resolve` `close` `activate` `assign` |
 | `story` | ✅ | ✅ REST（`story create\|update\|delete`，需 `--product` 创建） | ✅ `change` `close` `activate` `assign` `review` `submitreview` `recall` |
 | `requirement` / `epic` | ⏳ 列表可并入 story 族或独立 | ⏳ | ⏳ 同 story |
-| `todo` | ✅ | ⏳ | ⏳ 按禅道 todo 动作 |
+| `todo` | ✅ | ✅ REST（`todo create\|update\|delete`） | ✅ `finish` `activate`（REST **GET**） |
 | `feedback` | ✅ | ⏳ | ⏳ `activate` `close` … |
 | `ticket` | ✅ | ⏳ | ⏳ `activate` `close` … |
 
@@ -219,9 +219,9 @@ zqq-zentao comment list|add|edit …
 | `productplan` | ✅ | ⏳ | link/unlink stories/bugs 可选 |
 | `release` | ✅ | ⏳ | |
 | `build` | ✅ | ⏳ | |
-| `testcase` | ✅ | ⏳ | results 可选 |
-| `testsuite` | ✅ | ⏳ | |
-| `testtask` | ✅ | ⏳ | |
+| `testcase` | ✅ | ✅ REST（`testcase create\|update\|delete`） | ✅ `results`（POST `/testcases/:id/results`；steps 用 `--data`） |
+| `testsuite` | ✅ | ✅ REST create/delete（**无 PUT**） | APIv1 无 update entry |
+| `testtask` | ✅ | ✅ REST create/delete（**无 PUT**） | create 需 `--project` + product/execution/build/name/begin/end |
 
 ### D3. 组织对象（按需）
 
@@ -257,7 +257,8 @@ zqq-zentao comment list|add|edit …
 
 ### P2 — 其余 CUD + 组织对象
 
-计划/发布/版本/测试/反馈/工单；program/product/project/execution 按需。
+- ✅ `todo` / `testcase` / `testsuite` / `testtask` REST 写（离线路径测；真机另验）
+- ⏳ 计划/发布/版本/反馈/工单；program/product/project/execution 按需
 
 ### P3 — 体验
 
@@ -276,8 +277,8 @@ zqq-zentao comment list|add|edit …
 | 会话 / 只读浏览 registry | 大部分 ✅ |
 | `my-tasks` / `my-bugs` + `--type`/`--scope` | ✅ |
 | 其它 `my-*`（stories/todos/test…） | ✅（含 requirements/epics/docs/projects/executions；issues/risks/meetings 仍 ⏳ 可选） |
-| CRUD / 状态动作 | bug/task/story ✅ REST；P2 模块 ⏳；`comment` 写 ✅ |
-| 文档宣称「做 CRUD」 | ✅ README / 本文已同步（P2 模块仍 ⏳） |
+| CRUD / 状态动作 | bug/task/story ✅；todo/testcase/testsuite/testtask ✅ REST；其余 P2 ⏳；`comment` 写 ✅ |
+| 文档宣称「做 CRUD」 | ✅ README / 本文已同步（feedback/ticket/plan… 仍 ⏳） |
 | P3 体验 | ✅ 次要 my-*、用户短缓存、过滤/`--search`、auto 降级、my-tasks 分页 bump |
 
 ---
@@ -297,4 +298,4 @@ zqq-zentao comment list|add|edit …
 | 2026-07-23 | 初版：边界拍板（放开写、`my-* --type`、更多我的、本工具做 CRUD） |
 | 2026-07-23 | 补充定位：全面 CLI；不限本人；`my-*` 与 scope+过滤分工 |
 | 2026-07-23 | P0-B：`my_pages` 注册表；多 my-* + `--type`/`--scope` |
-| 2026-07-23 | F/P3 与 handoff 对齐：CRUD 文档已同步；体验项指 handoff |
+| 2026-07-24 | F/P2：todo + test* 写 ✅；修订表与现状速查 |

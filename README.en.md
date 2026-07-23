@@ -204,6 +204,10 @@ zqq-zentao bug 200
 zqq-zentao bug resolve 200 --resolution fixed --yes
 zqq-zentao task start 39980 --yes
 zqq-zentao task create --execution 100 --name "demo" --type devel --assignedTo alice --estStarted 2026-01-01 --deadline 2026-01-02 --yes
+zqq-zentao todo create --name "buy milk" --yes
+zqq-zentao todo finish 9 --yes
+zqq-zentao testcase create --product 12 --title "login" --data '{"steps":[{"desc":"open","expect":"ok"}]}' --yes
+zqq-zentao testsuite create --product 12 --name "smoke" --yes
 zqq-zentao ping
 zqq-zentao departments
 zqq-zentao comment list task 39973
@@ -222,6 +226,10 @@ zqq-zentao comment edit 1063694 "updated comment"
 | `task <id>` / `task <action> <id>` | Task detail; writes/actions (REST) | detail web/rest; write **rest** |
 | `bug <id>` / `bug <action> <id>` | Bug detail; writes/actions (REST) | **rest** |
 | `story <id>` / `story <action> <id>` | Story detail; writes/actions (create/update/delete/change/close/activate/assign/review/submitreview/recall, REST) | **rest** |
+| `todo <id>` / `todo <action> <id>` | Todo detail; writes (create/update/delete/finish/activate, REST; finish/activate are GET) | **rest** |
+| `testcase <id>` / `testcase <action> <id>` | Case detail; writes (create/update/delete/results, REST; steps via `--data`) | **rest** |
+| `testsuite <id>` / `testsuite create\|delete` | Suite detail; create/delete (no PUT in APIv1) | **rest** |
+| `testtask <id>` / `testtask create\|delete` | Test task detail; create (needs project+product+execution+build)/delete | **rest** |
 | `users` / `user <account>` | User list (optional `--search`) / detail | **rest only** |
 | `projects` | Project list (optional `--program` / `--product`) | **rest only** |
 | `project <id>` | Project detail | **rest only** |

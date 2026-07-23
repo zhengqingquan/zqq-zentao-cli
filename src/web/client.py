@@ -256,3 +256,51 @@ class WebClient:
         self, story_id: str | int, action: str, body: dict[str, Any] | None = None
     ) -> dict[str, Any]:
         raise SystemExit(f"story {action} requires --backend rest")
+
+    def create_todo(self, body: dict[str, Any]) -> dict[str, Any]:
+        raise SystemExit("todo create requires --backend rest")
+
+    def update_todo(self, todo_id: str | int, body: dict[str, Any]) -> dict[str, Any]:
+        raise SystemExit("todo update requires --backend rest")
+
+    def delete_todo(self, todo_id: str | int) -> dict[str, Any]:
+        raise SystemExit("todo delete requires --backend rest")
+
+    def todo_action(
+        self, todo_id: str | int, action: str, body: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
+        raise SystemExit(f"todo {action} requires --backend rest")
+
+    def create_testcase(
+        self, product_id: str | int, body: dict[str, Any]
+    ) -> dict[str, Any]:
+        raise SystemExit("testcase create requires --backend rest")
+
+    def update_testcase(
+        self, case_id: str | int, body: dict[str, Any]
+    ) -> dict[str, Any]:
+        raise SystemExit("testcase update requires --backend rest")
+
+    def delete_testcase(self, case_id: str | int) -> dict[str, Any]:
+        raise SystemExit("testcase delete requires --backend rest")
+
+    def testcase_action(
+        self, case_id: str | int, action: str, body: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
+        raise SystemExit(f"testcase {action} requires --backend rest")
+
+    def create_testsuite(
+        self, product_id: str | int, body: dict[str, Any]
+    ) -> dict[str, Any]:
+        raise SystemExit("testsuite create requires --backend rest")
+
+    def delete_testsuite(self, suite_id: str | int) -> dict[str, Any]:
+        raise SystemExit("testsuite delete requires --backend rest")
+
+    def create_testtask(
+        self, project_id: str | int, body: dict[str, Any]
+    ) -> dict[str, Any]:
+        raise SystemExit("testtask create requires --backend rest")
+
+    def delete_testtask(self, task_id: str | int) -> dict[str, Any]:
+        raise SystemExit("testtask delete requires --backend rest")

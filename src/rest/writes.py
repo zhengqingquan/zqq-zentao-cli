@@ -47,6 +47,47 @@ def story_action_path(story_id: str | int, action: str) -> str:
     return f"/stories/{quote(str(story_id), safe='')}/{action}"
 
 
+def todo_create_path() -> str:
+    return "/todos"
+
+
+def todo_item_path(todo_id: str | int) -> str:
+    return f"/todos/{quote(str(todo_id), safe='')}"
+
+
+def todo_action_path(todo_id: str | int, action: str) -> str:
+    # ZenTao APIv1: finish / activate are GET on these paths
+    return f"/todos/{quote(str(todo_id), safe='')}/{action}"
+
+
+def testcase_create_path(product_id: str | int) -> str:
+    return f"/products/{quote(str(product_id), safe='')}/testcases"
+
+
+def testcase_item_path(case_id: str | int) -> str:
+    return f"/testcases/{quote(str(case_id), safe='')}"
+
+
+def testcase_results_path(case_id: str | int) -> str:
+    return f"/testcases/{quote(str(case_id), safe='')}/results"
+
+
+def testsuite_create_path(product_id: str | int) -> str:
+    return f"/products/{quote(str(product_id), safe='')}/testsuites"
+
+
+def testsuite_item_path(suite_id: str | int) -> str:
+    return f"/testsuites/{quote(str(suite_id), safe='')}"
+
+
+def testtask_create_path(project_id: str | int) -> str:
+    return f"/projects/{quote(str(project_id), safe='')}/testtasks"
+
+
+def testtask_item_path(task_id: str | int) -> str:
+    return f"/testtasks/{quote(str(task_id), safe='')}"
+
+
 def check_write_response(r: dict[str, Any], *, label: str) -> Any:
     """Raise SystemExit on HTTP/API failure; return parsed data."""
     status = r.get("status")

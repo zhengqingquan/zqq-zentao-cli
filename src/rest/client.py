@@ -431,12 +431,20 @@ class RestClient:
         *,
         body: dict[str, Any] | None = None,
         label: str = "write",
+        query: dict[str, Any] | None = None,
     ) -> Any:
         from .writes import check_write_response
 
         self._ensure_login()
+        # ZenTao todo finish/activate are GET; avoid sending a JSON body.
+        send_body = method.upper() not in ("GET", "HEAD")
+        json_body: dict[str, Any] | None
+        if send_body:
+            json_body = body if body is not None else {}
+        else:
+            json_body = None
         r = self._write_sess.request(
-            method, path, json_body=body if body is not None else {}
+            method, path, json_body=json_body, query=query
         )
         data = check_write_response(r, label=label)
         if isinstance(data, dict):
@@ -559,4 +567,136 @@ class RestClient:
             story_action_path(story_id, path_action),
             body=body or {},
             label=f"story {action} {story_id}",
+        )
+
+    def create_todo(self, body: dict[str, Any]) -> dict[str, Any]:
+        from .writes import todo_create_path
+
+        return self._mutate("POST", todo_create_path(), body=body, label="todo create")
+
+    def update_todo(self, todo_id: str | int, body: dict[str, Any]) -> dict[str, Any]:
+        from .writes import todo_item_path
+
+        return self._mutate(
+            "PUT", todo_item_path(todo_id), body=body, label=f"todo update {todo_id}"
+        )
+
+    def delete_todo(self, todo_id: str | int) -> dict[str, Any]:
+        from .writes import todo_item_path
+
+        return self._mutate(
+            "DELETE", todo_item_path(todo_id), body={}, label=f"todo delete {todo_id}"
+        )
+
+    def todo_action(
+        self, todo_id: str | int, action: str, body: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
+        from .writes import todo_action_path
+
+        # Source: todofinish.php / todoactivate.php expose GET only.
+        if action not in ("finish", "activate"):
+            raise SystemExit(f"Unknown todo action {action!r}; use finish|activate")
+        return self._mutate(
+            "GET",
+            todo_action_path(todo_id, action),
+            body=body or {},
+            label=f"todo {action} {todo_id}",
+        )
+
+    def create_testcase(
+        self, product_id: str | int, body: dict[str, Any]
+    ) -> dict[str, Any]:
+        from .writes import testcase_create_path
+
+        return self._mutate(
+            "POST",
+            testcase_create_path(product_id),
+            body=body,
+            label="testcase create",
+        )
+
+    def update_testcase(
+        self, case_id: str | int, body: dict[str, Any]
+    ) -> dict[str, Any]:
+        from .writes import testcase_item_path
+
+        return self._mutate(
+            "PUT",
+            testcase_item_path(case_id),
+            body=body,
+            label=f"testcase update {case_id}",
+        )
+
+    def delete_testcase(self, case_id: str | int) -> dict[str, Any]:
+        from .writes import testcase_item_path
+
+        return self._mutate(
+            "DELETE",
+            testcase_item_path(case_id),
+            body={},
+            label=f"testcase delete {case_id}",
+        )
+
+    def testcase_action(
+        self, case_id: str | int, action: str, body: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
+        from .writes import testcase_results_path
+
+        if action != "results":
+            raise SystemExit(f"Unknown testcase action {action!r}; use results")
+        payload = dict(body or {})
+        query: dict[str, Any] = {}
+        for key in ("testtask", "version", "case"):
+            if key in payload:
+                query[key] = payload.pop(key)
+        return self._mutate(
+            "POST",
+            testcase_results_path(case_id),
+            body=payload,
+            query=query or None,
+            label=f"testcase results {case_id}",
+        )
+
+    def create_testsuite(
+        self, product_id: str | int, body: dict[str, Any]
+    ) -> dict[str, Any]:
+        from .writes import testsuite_create_path
+
+        return self._mutate(
+            "POST",
+            testsuite_create_path(product_id),
+            body=body,
+            label="testsuite create",
+        )
+
+    def delete_testsuite(self, suite_id: str | int) -> dict[str, Any]:
+        from .writes import testsuite_item_path
+
+        return self._mutate(
+            "DELETE",
+            testsuite_item_path(suite_id),
+            body={},
+            label=f"testsuite delete {suite_id}",
+        )
+
+    def create_testtask(
+        self, project_id: str | int, body: dict[str, Any]
+    ) -> dict[str, Any]:
+        from .writes import testtask_create_path
+
+        return self._mutate(
+            "POST",
+            testtask_create_path(project_id),
+            body=body,
+            label="testtask create",
+        )
+
+    def delete_testtask(self, task_id: str | int) -> dict[str, Any]:
+        from .writes import testtask_item_path
+
+        return self._mutate(
+            "DELETE",
+            testtask_item_path(task_id),
+            body={},
+            label=f"testtask delete {task_id}",
         )

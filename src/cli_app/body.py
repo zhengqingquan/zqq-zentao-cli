@@ -35,6 +35,14 @@ def body_from_args(args: argparse.Namespace, *, extra: dict | None = None) -> di
         "currentConsumed": getattr(args, "currentConsumed", None),
         "finishedDate": getattr(args, "finishedDate", None),
         "realStarted": getattr(args, "realStarted", None),
+        "product": getattr(args, "product", None),
+        "project": getattr(args, "project", None),
+        "execution": getattr(args, "execution", None),
+        "build": getattr(args, "build", None),
+        "begin": getattr(args, "begin", None),
+        "end": getattr(args, "end", None),
+        "date": getattr(args, "date", None),
+        "desc": getattr(args, "desc", None),
     }
     if extra:
         fields.update(extra)

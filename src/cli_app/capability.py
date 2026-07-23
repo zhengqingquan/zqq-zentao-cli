@@ -22,6 +22,10 @@ def capability(args: argparse.Namespace) -> str:
         return "bug" if (is_id_token(args.op) and args.id is None) else "bug.write"
     if args.cmd == "story":
         return "story" if (is_id_token(args.op) and args.id is None) else "story.write"
+    if args.cmd in ("todo", "testcase", "testsuite", "testtask"):
+        if is_id_token(args.op) and args.id is None:
+            return args.cmd
+        return f"{args.cmd}.write"
     page = my_page_by_cmd(args.cmd)
     if page is not None:
         scope, browse_type = resolve_browse(

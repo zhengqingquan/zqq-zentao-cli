@@ -204,6 +204,10 @@ zqq-zentao bug 200
 zqq-zentao bug resolve 200 --resolution fixed --yes
 zqq-zentao task start 39980 --yes
 zqq-zentao task create --execution 100 --name "demo" --type devel --assignedTo alice --estStarted 2026-01-01 --deadline 2026-01-02 --yes
+zqq-zentao todo create --name "buy milk" --yes
+zqq-zentao todo finish 9 --yes
+zqq-zentao testcase create --product 12 --title "login" --data '{"steps":[{"desc":"open","expect":"ok"}]}' --yes
+zqq-zentao testsuite create --product 12 --name "smoke" --yes
 zqq-zentao ping
 zqq-zentao departments
 zqq-zentao comment list task 39973
@@ -222,6 +226,10 @@ zqq-zentao comment edit 1063694 "新备注"
 | `task <id>` / `task <action> <id>` | 任务详情；写/动作（create/update/delete/start/finish/close/activate/assign，REST） | 详情 web/rest；写 **rest** |
 | `bug <id>` / `bug <action> <id>` | Bug 详情；写/动作（create/update/delete/confirm/resolve/close/activate/assign，REST） | **rest** |
 | `story <id>` / `story <action> <id>` | 需求详情；写/动作（create/update/delete/change/close/activate/assign/review/submitreview/recall，REST） | **rest** |
+| `todo <id>` / `todo <action> <id>` | 待办详情；写/动作（create/update/delete/finish/activate，REST；finish/activate 为 GET） | **rest** |
+| `testcase <id>` / `testcase <action> <id>` | 用例详情；写（create/update/delete/results，REST；steps 用 `--data`） | **rest** |
+| `testsuite <id>` / `testsuite create\|delete` | 套件详情；create/delete（APIv1 无 PUT） | **rest** |
+| `testtask <id>` / `testtask create\|delete` | 测试单详情；create（需 project+product+execution+build）/delete | **rest** |
 | `users` / `user <account>` | 用户列表（可 `--search`）/ 详情 | **仅 rest** |
 | `projects` | 项目列表（可选 `--program` / `--product`） | **仅 rest** |
 | `project <id>` | 项目详情 | **仅 rest** |

@@ -123,8 +123,14 @@ def add_write_flags(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--severity", default=None)
     parser.add_argument("--type", dest="obj_type", default=None, help="Object type field")
     parser.add_argument("--resolution", default=None, help="Bug resolution")
-    parser.add_argument("--product", default=None, help="Product id (bug/story create)")
-    parser.add_argument("--execution", "-e", default=None, help="Execution id (task create)")
+    parser.add_argument("--product", default=None, help="Product id (create scope / body)")
+    parser.add_argument("--project", default=None, help="Project id (testtask create)")
+    parser.add_argument("--execution", "-e", default=None, help="Execution id")
+    parser.add_argument("--build", default=None, help="Build id (testtask create)")
+    parser.add_argument("--begin", default=None, help="Begin date/time")
+    parser.add_argument("--end", default=None, help="End date/time")
+    parser.add_argument("--date", default=None, help="Todo date (YYYY-MM-DD)")
+    parser.add_argument("--desc", default=None, help="Description")
     parser.add_argument("--openedBuild", default=None, help="Bug openedBuild (default trunk)")
     parser.add_argument("--spec", default=None, help="Story description / spec")
     parser.add_argument("--verify", default=None, help="Story acceptance criteria")
@@ -138,6 +144,19 @@ def add_write_flags(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--currentConsumed", default=None)
     parser.add_argument("--finishedDate", default=None)
     parser.add_argument("--realStarted", default=None)
+
+
+def _add_write_noun_parser(
+    sub: argparse._SubParsersAction[Any],
+    *,
+    name: str,
+    help_text: str,
+    ops_help: str,
+) -> None:
+    p = sub.add_parser(name, help=help_text)
+    p.add_argument("op", help=f"{name} id (detail) or action: {ops_help}")
+    p.add_argument("id", nargs="?", help=f"{name} id for write/actions")
+    add_write_flags(p)
 
 
 def _register_my_page_parsers(sub: argparse._SubParsersAction[Any]) -> None:
@@ -314,6 +333,34 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p_story.add_argument("id", nargs="?", help="Story id for write/actions")
     add_write_flags(p_story)
+
+    _add_write_noun_parser(
+        sub,
+        name="todo",
+        help_text="Todo detail or write: todo <id> | todo create|update|delete|finish|activate",
+        ops_help="create|update|delete|finish|activate",
+    )
+    _add_write_noun_parser(
+        sub,
+        name="testcase",
+        help_text=(
+            "Testcase detail or write: testcase <id> | "
+            "testcase create|update|delete|results"
+        ),
+        ops_help="create|update|delete|results",
+    )
+    _add_write_noun_parser(
+        sub,
+        name="testsuite",
+        help_text="Testsuite detail or write: testsuite <id> | testsuite create|delete",
+        ops_help="create|delete",
+    )
+    _add_write_noun_parser(
+        sub,
+        name="testtask",
+        help_text="Testtask detail or write: testtask <id> | testtask create|delete",
+        ops_help="create|delete",
+    )
 
     p_c = sub.add_parser("comment", help="Comment list/add/edit (web only)")
     csub = p_c.add_subparsers(dest="c_cmd", required=True)

@@ -60,6 +60,10 @@ SPECIAL_CMDS = frozenset(
         "task",
         "bug",  # get + REST write/actions (overrides registry detail-only)
         "story",  # get + REST write/actions (overrides registry detail-only)
+        "todo",
+        "testcase",
+        "testsuite",
+        "testtask",
         "comment",
     }
 )
