@@ -19,7 +19,7 @@ _SCOPE_FLAGS = (
 )
 
 _QUERY_HELPS = {
-    "search": "Search users by account / realname / pinyin (client-side)",
+    "search": "Search by name/code (client-side; projects/products/programs; users by account/realname/pinyin)",
 }
 
 
@@ -212,6 +212,12 @@ def build_parser() -> argparse.ArgumentParser:
         choices=("web", "rest", "auto"),
         default=None,
         help="Transport backend (default: ZENTAO_BACKEND, or auto)",
+    )
+    p.add_argument(
+        "--api",
+        choices=("v1", "v2"),
+        default=None,
+        help="REST API version for reads (default: ZENTAO_API or v1); writes always use v1",
     )
     tls = p.add_mutually_exclusive_group()
     tls.add_argument(

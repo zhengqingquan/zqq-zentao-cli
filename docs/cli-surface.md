@@ -87,7 +87,7 @@ zqq-zentao comment list|add|edit …
 | `--finishedBy` / `--resolvedBy` / `--closedBy` | 完成/解决/关闭人 | ⏳ |
 | `--status` | 状态（逗号分隔多值，如 `wait,doing`） | ✅ `tasks` / `bugs` / `stories` |
 | `--pri` / `--severity` | 优先级等 | ⏳ |
-| `--search` | 关键词（`users --search` 按账号/姓名/拼音） | ✅ `users`；其它名词 ⏳ |
+| `--search` | 关键词 | ✅ `users`（账号/姓名/拼音）；✅ `projects`/`products`/`programs`（name/code 客户端；`--api v2` 时 projects 先试 filters） |
 | `--pick` | 摘取字段（全局，逗号分隔） | ✅ |
 
 说明：
@@ -96,6 +96,7 @@ zqq-zentao comment list|add|edit …
 - `bugs` / `stories`：优先走 REST `status=`（browseType）。`--assignedTo`/`--openedBy` 为**当前用户**时用 `assigntome`/`openedbyme`（stories 为 `assignedtome`）；`--status active` 等映射为 `unresolved`/`activestory` 等。查**他人**名下仍拉全量后客户端过滤（慢），stderr 会提示；查自己优先 `my-bugs` / `my-stories`
 - `tasks --openedBy` 单独使用时请加 `-e <executionId>`（全局 search 无 openedBy 字段）
 - 鉴权日志（`auth: rest-token(...)` 等）打在 **stderr**，勿与 stdout JSON 混用
+- REST 版本：`--api v1|v2` / `ZENTAO_API`（默认 v1）；**写操作始终 v1**；v2 为并行只读（见 channel-matrix）
 
 ---
 
@@ -104,7 +105,7 @@ zqq-zentao comment list|add|edit …
 | 命令 | 状态 | 通道 | 说明 |
 |------|------|------|------|
 | `login` | ✅ | web+rest | 同时缓存 Cookie 与 Token |
-| `whoami` | ✅ | web/rest | |
+| `whoami` | ✅ | web/rest | rest 时 `/user` 走 v1 |
 | `ping` | ✅ | rest | |
 | `langs` / `views` / `groups` / `tabs` / `options` | ✅ 只读 | rest | 低频，保留 |
 | `configurations` / `configuration` / `required-fields` | ✅ 只读 | rest | 低频 |

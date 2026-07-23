@@ -4,12 +4,12 @@
 契约（命令面 / ✅⏳）→ [cli-surface.md](./cli-surface.md)；通道选择 → [channel-matrix.md](./channel-matrix.md)；非目标 → cli-surface **G**。
 
 **仓库**：`zqq-zentao-cli`，入口 `zqq-zentao`（勿与官方 npm `zentao` 混淆）。  
-**禅道锚点**：22.3（本地只读源码 `…/zentaopms`）；本工具用 **REST APIv1**，未接 v2。  
-**更新日期**：2026-07-23  
+**禅道锚点**：22.3（本地只读源码 `…/zentaopms`）；**REST v1 默认**（写仅 v1）；**REST v2 可选只读**（`--api v2`）；Web 仍扛 my-* / comment。  
+**更新日期**：2026-07-24  
 
 边界已拍板（勿回退）：放开写、`my-<noun> [--type]`、work+contribute 常用「我的」、自建 CRUD、查他人走 scope+过滤。细节见 cli-surface。
 
-基线已落地（细节勿在此展开）：双通道登录；REST 只读 registry；`my-*`（tasks 默认可 rest，其余 web）；Web 翻页拉全；`comment`；tasks/bugs/stories 过滤（实名/`--status`/`--pick`）；bug/task/story REST 写 + `--yes`；bugs/stories 本人/状态 browseType 映射。里程碑用 `git log --oneline -20`。
+基线已落地（细节勿在此展开）：双通道登录；REST 只读 registry（v1 + 常用 v2）；`projects|products|programs --search`；`my-*`；Web 翻页拉全；`comment`；tasks/bugs/stories 过滤；bug/task/story REST 写 + `--yes`；browseType 映射。里程碑用 `git log --oneline -20`。
 
 遵守 [`.cursor/rules/desensitize.mdc`](../.cursor/rules/desensitize.mdc)（文档/测试勿写真实人名）。
 
@@ -51,7 +51,7 @@
 |--------|-----|--------|--------|
 | **中** | 补齐次要 `my-*` | `my-requirements` / `my-epics` / `my-docs` / `my-projects` / `my-executions` 契约 ⏳ | 扩 `web/my_pages.py`（复用翻页） |
 | **中** | 用户表短缓存 | 实名解析重复打 users | `user_resolve.py`，TTL 按 server+登录账号 |
-| **低** | 通用过滤补齐 | `--finishedBy` / `--resolvedBy` / `--pri`；非 users 的 `--search` 仍 ⏳ | 见 cli-surface「通用过滤」；能 REST 则映射，否则客户端 |
+| **低** | 通用过滤补齐 | `--finishedBy` / `--resolvedBy` / `--pri`；其它模块 `--search` 仍 ⏳（`users`/`projects`/`products`/`programs` 已有） | 见 cli-surface「通用过滤」；能 REST 则映射，否则客户端 |
 | **低** | 双通道失败降级 | `auto` 时一侧挂了试另一侧 | `capabilities` / `factory`；勿默默吞错 |
 | **低** | REST my-tasks 大列表 | 确认分页 workaround 不截断 | `rest/tasks.py`；对照 Web 200/页 |
 
@@ -101,7 +101,7 @@ PATHINFO 形状：[zentao-web-pathinfo.md](./zentao-web-pathinfo.md)（work/cont
 | `src/web/lists.py` | zin dtable 翻页拉全 |
 | `src/web/comments.py` | 备注 Web |
 | `docs/cli-surface.md` / `channel-matrix.md` | 契约 / 通道矩阵 |
-| `docs/zentao-rest-apiv1.md` / `zentao-web-pathinfo.md` | 接口对照（v2 见 `zentao-rest-apiv2.md`，未用） |
+| `docs/zentao-rest-apiv1.md` / `zentao-web-pathinfo.md` | 接口对照；v2 路由全文见 `zentao-rest-apiv2.md`（可选 `--api v2`） |
 
 测试：`python -m pytest`（勿对真实禅道写破坏性测试，除非隔离环境）。
 
@@ -128,3 +128,4 @@ PATHINFO 形状：[zentao-web-pathinfo.md](./zentao-web-pathinfo.md)（work/cont
 |------|------|
 | 2026-07-23 | 初版 → 历经 P0 过滤/`my-*`、P1 三角写、Web 翻页、browseType、channel-matrix |
 | 2026-07-23 | 瘦身：未完成项为主；P1 联调 checklist；P2 切入表；下一刀总裁决；与 cli-surface 去重 |
+| 2026-07-24 | REST v1/v2/Web 并存：`--api`、resources_v2、`projects --search` |

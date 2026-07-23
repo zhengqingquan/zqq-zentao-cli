@@ -4,7 +4,7 @@
 
 **中文** | [English](./README.en.md)
 
-禅道（ZenTao）双通道命令行工具：支持 **Web（PATHINFO + Cookie）** 与 **REST（Token）**。
+禅道（ZenTao）双通道命令行工具：支持 **Web（PATHINFO + Cookie）** 与 **REST Token（APIv1 默认 / APIv2 可选只读）**。
 
 - Python ≥ 3.10，无第三方依赖
 - **目标能力**：**全面命令行操作禅道**（权限内查任何人/任何对象 + CRUD/状态流转 + 备注）；契约见 [docs/cli-surface.md](./docs/cli-surface.md)
@@ -13,7 +13,7 @@
 - 与官方 [zentao-cli](https://github.com/easysoft/zentao-cli) 共用环境变量与 `~/.config/zentao/zentao.json`（本工具另存 `webCookies`）；**本工具自建完整能力面，含 CRUD**
 - Web PATHINFO 接口说明见 [docs/zentao-web-pathinfo.md](./docs/zentao-web-pathinfo.md)
 - REST API v1（22.3 源码整理）见 [docs/zentao-rest-apiv1.md](./docs/zentao-rest-apiv1.md)
-- REST API v2 路由全文见 [docs/zentao-rest-apiv2.md](./docs/zentao-rest-apiv2.md)（本工具未用）
+- REST API v2 路由全文见 [docs/zentao-rest-apiv2.md](./docs/zentao-rest-apiv2.md)（可用 `--api v2` 只读；写仍 v1）
 - **命令面契约（含分期）**见 [docs/cli-surface.md](./docs/cli-surface.md)
 - **交接 / 待办**见 [docs/handoff.md](./docs/handoff.md)
 - **REST vs Web 通道矩阵**见 [docs/channel-matrix.md](./docs/channel-matrix.md)
@@ -56,6 +56,7 @@ zqq-zentao login -s https://zentao.example.com -u your_account -p your_password
 | `ZENTAO_PASSWORD` | 密码（不落盘；`login` 或缺 Cookie/Token 时需要） | ✅ |
 | `ZENTAO_TOKEN` | REST Token（有则优先于文件内 token） | ✅ |
 | `ZENTAO_BACKEND` | `web` \| `rest` \| `auto`（默认 `auto`） | — |
+| `ZENTAO_API` | REST 读版本 `v1` \| `v2`（默认 `v1`；写始终 v1） | — |
 | `ZENTAO_INSECURE` | 默认 `1` 跳过 TLS 校验；设为 `0` 则校验 | —（官方用 `--insecure`） |
 | `ZENTAO_CONFIG_FILE` | 自定义配置文件路径 | ✅ |
 
@@ -71,6 +72,8 @@ zqq-zentao login -s https://zentao.example.com -u your_account -p your_password
 | `--config <file>` | 自定义配置文件（亦可用 `ZENTAO_CONFIG_FILE`） |
 | `--machine-readable` | 机器可读：紧凑 JSON、禁用颜色 |
 | `--pick <fields>` | 表格输出字段（逗号分隔；覆盖默认列） |
+| `--backend <web\|rest\|auto>` | 传输通道（默认 `ZENTAO_BACKEND` / auto） |
+| `--api <v1\|v2>` | REST **读**版本（默认 `ZENTAO_API` / v1；写始终 v1） |
 | `-h` / `--help` | 显示帮助 |
 
 ```bash
@@ -79,6 +82,8 @@ zqq-zentao --format json whoami
 zqq-zentao --format raw --machine-readable task 39980
 zqq-zentao --timeout 10000 --insecure my-tasks
 zqq-zentao --config ./zentao.json whoami
+zqq-zentao --pick id,name,code projects --search FM270
+zqq-zentao --api v2 projects --search FM270
 ```
 
 TLS 跳过证书校验（自签 / 内网 HTTPS 常用）：

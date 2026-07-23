@@ -17,6 +17,7 @@ LOGIN_HINT = "Run: zqq-zentao login -s <url> -u <account> -p <password>"
 DEFAULT_TIMEOUT_MS = 60_000
 
 Backend = Literal["web", "rest", "auto"]
+ApiVersion = Literal["v1", "v2"]
 
 _config_path_override: Path | None = None
 
@@ -366,6 +367,24 @@ def env_backend() -> Backend:
     if raw in ("web", "rest", "auto"):
         return raw  # type: ignore[return-value]
     raise SystemExit(f"Invalid ZENTAO_BACKEND={raw!r}, expected web|rest|auto")
+
+
+def env_api() -> ApiVersion:
+    """REST API version for reads. Default v1. Writes always use v1."""
+    raw = (os.environ.get("ZENTAO_API") or "v1").strip().lower()
+    if raw in ("v1", "v2"):
+        return raw  # type: ignore[return-value]
+    raise SystemExit(f"Invalid ZENTAO_API={raw!r}, expected v1|v2")
+
+
+def resolve_api(cli_api: str | None = None) -> ApiVersion:
+    """Priority: CLI --api > ZENTAO_API (default v1)."""
+    if cli_api:
+        raw = cli_api.strip().lower()
+        if raw not in ("v1", "v2"):
+            raise SystemExit(f"Invalid --api={cli_api!r}, expected v1|v2")
+        return raw  # type: ignore[return-value]
+    return env_api()
 
 
 def insecure_ssl() -> bool:

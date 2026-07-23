@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""REST Token HTTP session."""
+"""REST Token HTTP session (APIv1 / APIv2 base path)."""
 
 from __future__ import annotations
 
@@ -10,9 +10,13 @@ import sys
 import urllib.error
 import urllib.parse
 import urllib.request
-from typing import Any
+from typing import Any, Mapping, Sequence
 
 from ..config import USER_AGENT, resolve_password, resolve_token
+
+QueryValue = str | int | float | bool
+QueryMapping = Mapping[str, QueryValue]
+QueryPairs = Sequence[tuple[str, QueryValue]]
 
 
 class RestSession:
@@ -23,12 +27,17 @@ class RestSession:
         *,
         account: str = "",
         timeout: float = 60.0,
+        api_version: str = "v1",
     ):
         self.server = server.rstrip("/")
         self.account = account
         self.token = ""
         self.insecure = insecure
         self.timeout = timeout
+        ver = (api_version or "v1").strip().lower()
+        if ver not in ("v1", "v2"):
+            raise SystemExit(f"Invalid api_version={api_version!r}, expected v1|v2")
+        self.api_version = ver
         self._ssl = ssl._create_unverified_context() if insecure else None
 
     def _url(self, path: str) -> str:
@@ -37,7 +46,7 @@ class RestSession:
         p = path if path.startswith("/") else f"/{path}"
         if p.startswith("/api.php"):
             return f"{self.server}{p}"
-        return f"{self.server}/api.php/v1{p}"
+        return f"{self.server}/api.php/{self.api_version}{p}"
 
     def request(
         self,
@@ -45,13 +54,17 @@ class RestSession:
         path: str,
         *,
         json_body: dict[str, Any] | None = None,
-        query: dict[str, str] | None = None,
+        query: QueryMapping | QueryPairs | None = None,
         headers: dict[str, str] | None = None,
         auth: bool = True,
     ) -> dict[str, Any]:
         url = self._url(path)
         if query:
-            url += ("&" if "?" in url else "?") + urllib.parse.urlencode(query)
+            if isinstance(query, Mapping):
+                pairs = [(k, str(v)) for k, v in query.items()]
+            else:
+                pairs = [(k, str(v)) for k, v in query]
+            url += ("&" if "?" in url else "?") + urllib.parse.urlencode(pairs)
 
         hdrs = {
             "User-Agent": USER_AGENT,
@@ -102,8 +115,7 @@ class RestSession:
     ) -> str:
         """
         Authenticate. Returns the token in use.
-        prefer_stored: try env/profile token before password exchange.
-        force_password: always exchange password (used by `zqq-zentao login`).
+        Token exchange always hits APIv1 ``/api.php/v1/tokens``.
         """
         self.account = account
         if not force_password and prefer_stored:
@@ -116,7 +128,7 @@ class RestSession:
         pwd = password if password is not None else resolve_password()
         r = self.request(
             "POST",
-            "/tokens",
+            "/api.php/v1/tokens",
             json_body={"account": account, "password": pwd},
             auth=False,
         )

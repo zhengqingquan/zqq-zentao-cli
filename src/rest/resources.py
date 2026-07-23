@@ -195,6 +195,7 @@ _add(
         detail_path="/programs/{id}",
         list_key="programs",
         detail_keys=("program",),
+        query_params=("search",),
     )
 )
 _add(
@@ -208,6 +209,7 @@ _add(
         list_key="products",
         detail_keys=("product",),
         scopes={"program": "/programs/{id}/products"},
+        query_params=("search",),
     )
 )
 _add(
@@ -224,6 +226,7 @@ _add(
             "program": "/programs/{id}/projects",
             "product": "/products/{id}/projects",
         },
+        query_params=("search",),
     )
 )
 _add(

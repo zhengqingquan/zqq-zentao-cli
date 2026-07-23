@@ -3,11 +3,11 @@
 面向接手开发 / Agent：回答 **「什么时候该用 REST，什么时候 Web 更方便」**，以及 **怎么继续挖缺口**。
 
 命令契约见 [cli-surface.md](./cli-surface.md)；待办见 [handoff.md](./handoff.md)。  
-REST 路径：[zentao-rest-apiv1.md](./zentao-rest-apiv1.md)（v1，本工具在用）、[zentao-rest-apiv2.md](./zentao-rest-apiv2.md)（v2，未接入）。  
+REST 路径：[zentao-rest-apiv1.md](./zentao-rest-apiv1.md)（**默认读/写**）、[zentao-rest-apiv2.md](./zentao-rest-apiv2.md)（**可选只读**，`--api v2`）。  
 运行时裁决在 `src/capabilities.py`；「我的」Web 注册表在 `src/web/my_pages.py`。
 
 **禅道版本**：以本地 22.3 源码为准（`…/zentaopms`，只读）。  
-**更新日期**：2026-07-23
+**更新日期**：2026-07-24
 
 ---
 
@@ -15,12 +15,15 @@ REST 路径：[zentao-rest-apiv1.md](./zentao-rest-apiv1.md)（v1，本工具在
 
 | 优先 | 条件 |
 |------|------|
-| **REST** | 结构化 CRUD / 详情 / 带稳定 path 的范围列表；写动作有 entry（`bugresolve`、`taskstart`…） |
-| **Web** | 「我的地盘」列表；备注；REST 强制 scope 且无「我的」等价物；高级搜索 / Session 查询；browseType 视角且 REST 未暴露 |
+| **REST v1** | 默认只读注册表；bug/task/story **写**（仅 v1） |
+| **REST v2** | `--api v2` / `ZENTAO_API=v2`：并行只读；`projects --search` 先试 `filters`，失败则 **v1 客户端扫描** |
+| **Web** | 「我的地盘」列表；备注；REST 强制 scope 且无「我的」等价物 |
 | **REST + browseType** | 产品/项目/执行下列表：`status` query = browseType（本人可用 `assigntome` 等），见 `src/rest/browse_filter.py` |
-| **REST + 客户端滤** | 查**他人** `assignedTo`/`openedBy`（bugs/stories）：无任意账号 REST 过滤 → 拉全量再滤（大产品慢） |
+| **REST + 客户端滤** | 查**他人** `assignedTo`/`openedBy`（bugs/stories）；`projects/products/programs --search` |
 
-`auto`：有 Token 偏 rest；能力仅 web/仅 rest 时强制对应通道。
+`auto`：有 Token 偏 rest；能力仅 web/仅 rest 时强制对应通道。`--api` 只影响 REST **读**。
+
+**已知坑（v2）**：实机上 `GET /api.php/v2/projects` 的 `page`/`limit` 不可靠（重复页、limit 被忽略）；按名搜索勿依赖 v2 翻页拉全。
 
 ---
 

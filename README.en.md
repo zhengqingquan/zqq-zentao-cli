@@ -4,7 +4,7 @@
 
 [中文](./README.md) | **English**
 
-ZenTao dual-backend CLI: **Web (PATHINFO + Cookie)** and **REST (Token)**.
+ZenTao dual-backend CLI: **Web (PATHINFO + Cookie)** and **REST Token (APIv1 default / APIv2 optional read)**.
 
 - Python ≥ 3.10, no third-party dependencies
 - **Target surface**: **full ZenTao CLI** (query anyone/anything within ACL + CRUD/status actions + comments); see [docs/cli-surface.md](./docs/cli-surface.md)
@@ -13,7 +13,7 @@ ZenTao dual-backend CLI: **Web (PATHINFO + Cookie)** and **REST (Token)**.
 - Shares env vars and `~/.config/zentao/zentao.json` with the official [zentao-cli](https://github.com/easysoft/zentao-cli) (this tool also stores `webCookies`); **this tool owns a full capability surface including CRUD**
 - Web PATHINFO API notes: [docs/zentao-web-pathinfo.md](./docs/zentao-web-pathinfo.md)
 - REST API v1 (from 22.3 source): [docs/zentao-rest-apiv1.md](./docs/zentao-rest-apiv1.md)
-- REST API v2 full route list: [docs/zentao-rest-apiv2.md](./docs/zentao-rest-apiv2.md) (not used by this CLI)
+- REST API v2 full route list: [docs/zentao-rest-apiv2.md](./docs/zentao-rest-apiv2.md) (optional `--api v2` reads; writes stay on v1)
 - **CLI contract (phased)**: [docs/cli-surface.md](./docs/cli-surface.md)
 - **Handoff / TODO**: [docs/handoff.md](./docs/handoff.md)
 - **REST vs Web channel matrix**: [docs/channel-matrix.md](./docs/channel-matrix.md)
@@ -56,6 +56,7 @@ Env-only setups still work; unauthenticated commands hint you to run `zqq-zentao
 | `ZENTAO_PASSWORD` | Password (not on disk; needed for `login` or when Cookie/Token missing) | ✅ |
 | `ZENTAO_TOKEN` | REST token (overrides file token) | ✅ |
 | `ZENTAO_BACKEND` | `web` \| `rest` \| `auto` (default `auto`) | — |
+| `ZENTAO_API` | REST read version `v1` \| `v2` (default `v1`; writes always v1) | — |
 | `ZENTAO_INSECURE` | Default `1` skips TLS verify; set `0` to verify | — (official uses `--insecure`) |
 | `ZENTAO_CONFIG_FILE` | Custom config file path | ✅ |
 
@@ -71,6 +72,8 @@ Env-only setups still work; unauthenticated commands hint you to run `zqq-zentao
 | `--config <file>` | Custom config file (or `ZENTAO_CONFIG_FILE`) |
 | `--machine-readable` | Compact output, disable colors |
 | `--pick <fields>` | Table columns (comma-separated; overrides defaults) |
+| `--backend <web\|rest\|auto>` | Transport channel (default `ZENTAO_BACKEND` / auto) |
+| `--api <v1\|v2>` | REST **read** version (default `ZENTAO_API` / v1; writes always v1) |
 | `-h` / `--help` | Show help |
 
 ```bash
@@ -79,6 +82,8 @@ zqq-zentao --format json whoami
 zqq-zentao --format raw --machine-readable task 39980
 zqq-zentao --timeout 10000 --insecure my-tasks
 zqq-zentao --config ./zentao.json whoami
+zqq-zentao --pick id,name,code projects --search FM270
+zqq-zentao --api v2 projects --search FM270
 ```
 
 Skip TLS certificate verification (common for self-signed / internal HTTPS):

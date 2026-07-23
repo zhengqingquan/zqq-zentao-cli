@@ -17,6 +17,9 @@ DEFAULT_LIST_FIELDS: dict[str, list[str]] = {
     "bugs": _BUG_FIELDS,
     "stories": _STORY_FIELDS,
     "users": _USER_FIELDS,
+    "projects": ["id", "name", "code", "status"],
+    "products": ["id", "name", "code", "status"],
+    "programs": ["id", "name", "code", "status"],
 }
 for _mp in MY_PAGES.values():
     DEFAULT_LIST_FIELDS[_mp.cmd] = list(_mp.table_fields)

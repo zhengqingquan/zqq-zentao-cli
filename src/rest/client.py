@@ -7,9 +7,16 @@ from __future__ import annotations
 from typing import Any
 from urllib.parse import quote
 
-from ..config import LOGIN_HINT, insecure_ssl, load_profile, try_resolve_password
+from ..config import (
+    LOGIN_HINT,
+    insecure_ssl,
+    load_profile,
+    resolve_api,
+    try_resolve_password,
+)
 from . import tasks as tasks_api
 from .resources import RESOURCES, Resource
+from .resources_v2 import resolve_resource_for_api
 from .session import RestSession
 
 # Scope flag priority when multiple are set (first wins).
@@ -96,22 +103,37 @@ class RestClient:
         *,
         insecure: bool | None = None,
         timeout: float | None = None,
+        api_version: str | None = None,
     ):
         self.profile = profile or load_profile()
+        skip = insecure_ssl() if insecure is None else insecure
+        to = 60.0 if timeout is None else timeout
+        self.api_version = resolve_api(api_version)
+        # Reads use selected API version; writes always APIv1.
         self._sess = RestSession(
             self.profile["server"],
-            insecure=insecure_ssl() if insecure is None else insecure,
+            insecure=skip,
             account=self.profile["account"],
-            timeout=60.0 if timeout is None else timeout,
+            timeout=to,
+            api_version=self.api_version,
+        )
+        self._write_sess = RestSession(
+            self.profile["server"],
+            insecure=skip,
+            account=self.profile["account"],
+            timeout=to,
+            api_version="v1",
         )
         self._logged_in = False
 
     def login(self, *, password: str | None = None, force_password: bool = False) -> None:
-        self._sess.login(
+        token = self._sess.login(
             self.profile["account"],
             password,
             force_password=force_password,
         )
+        self._write_sess.token = token
+        self._write_sess.account = self._sess.account
         self._logged_in = True
 
     def _ensure_login(self) -> None:
@@ -124,15 +146,43 @@ class RestClient:
                 raise
             raise SystemExit(f"{e}. {LOGIN_HINT}") from e
 
-    def _get(self, path: str, *, query: dict[str, str] | None = None) -> Any:
+    @staticmethod
+    def _unwrap_payload(data: Any) -> Any:
+        """APIv2 often wraps as {status, data}; unwrap when present."""
+        if (
+            isinstance(data, dict)
+            and "data" in data
+            and data.get("status") in ("success", "ok", True, "successful")
+            and isinstance(data.get("data"), (dict, list))
+        ):
+            return data["data"]
+        return data
+
+    def _get(self, path: str, *, query: Any = None) -> Any:
         self._ensure_login()
         r = self._sess.request("GET", path, query=query)
         if not r["ok"]:
             raise SystemExit(f"REST GET {path} failed HTTP {r['status']}: {r['raw'][:160]}")
-        return r["data"]
+        return self._unwrap_payload(r["data"])
+
+    def _resolve_resource(self, name: str) -> Resource:
+        res = resolve_resource_for_api(name, self.api_version)
+        if res is None:
+            # legacy lookup
+            res = RESOURCES.get(name)
+        if res is None:
+            raise SystemExit(f"Unknown REST resource: {name}")
+        return res
 
     def whoami(self) -> dict[str, Any]:
-        data = self._get("/user")
+        # /user is APIv1; always use write session.
+        self._ensure_login()
+        r = self._write_sess.request("GET", "/user")
+        if not r["ok"]:
+            raise SystemExit(
+                f"REST GET /user failed HTTP {r['status']}: {r['raw'][:160]}"
+            )
+        data = self._unwrap_payload(r["data"])
         data = data if isinstance(data, dict) else {}
         profile = data.get("profile") if isinstance(data.get("profile"), dict) else data
         return {
@@ -140,6 +190,7 @@ class RestClient:
             "realname": profile.get("realname"),
             "server": self.profile["server"],
             "backend": self.backend,
+            "api": self.api_version,
             "hasToken": bool(self._sess.token),
             "profile": profile,
         }
@@ -233,12 +284,6 @@ class RestClient:
 
     def edit_comment(self, action_id: str | int, comment: str) -> dict[str, Any]:
         raise SystemExit("comment.edit requires --backend web")
-
-    def _resolve_resource(self, name: str) -> Resource:
-        res = RESOURCES.get(name)
-        if res is None:
-            raise SystemExit(f"Unknown REST resource: {name}")
-        return res
 
     def _pick_scope(
         self, res: Resource, scopes: dict[str, str | int | None] | None
@@ -362,7 +407,9 @@ class RestClient:
         from .writes import check_write_response
 
         self._ensure_login()
-        r = self._sess.request(method, path, json_body=body if body is not None else {})
+        r = self._write_sess.request(
+            method, path, json_body=body if body is not None else {}
+        )
         data = check_write_response(r, label=label)
         if isinstance(data, dict):
             out = dict(data)

@@ -4,7 +4,7 @@
 
 与 [zentao-rest-apiv1.md](./zentao-rest-apiv1.md)（**v1**）对照：v2 **没有** `api/v2/entries/`，多数路由 `redirect` 到 Web control，再用 `response` 从视图数据抽 JSON；常带 `search.enabled`。
 
-**本工具 `zqq-zentao` 当前只用 v1，未接 v2。** 本文供对照 / 评估（如「我的」列表、服务端 search）。
+**本工具 `zqq-zentao`**：默认 REST **v1**；可用 `--api v2` / `ZENTAO_API=v2` 做**并行只读**（写仍 v1）。见 [channel-matrix.md](./channel-matrix.md)。
 
 Web PATHINFO 见 [zentao-web-pathinfo.md](./zentao-web-pathinfo.md)；通道选择见 [channel-matrix.md](./channel-matrix.md)。
 

@@ -132,6 +132,7 @@ def main(argv: list[str] | None = None) -> int:
     client = create_client(
         cap,
         cli_backend=args.backend,
+        cli_api=getattr(args, "api", None),
         insecure=insecure,
         timeout_ms=timeout_ms,
     )
