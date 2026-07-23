@@ -53,6 +53,9 @@
 | GET | `/project-browse.html` | 项目浏览 |
 | GET | `/qa.html` | 测试入口 |
 | GET | `/task-view-{taskID}.html` | 任务详情 |
+| GET/POST | `/task-edit-{taskID}.html` | 编辑任务（改名称/描述等；**已关闭也可**，不必先 activate；与 REST `PUT /tasks/:id` 同 `task::edit`） |
+| GET | `/tree-ajaxGetOptionMenu-{executionID}-task-….html` | 任务模块下拉（edit 换执行时 JS 拉 JSON；CLI 用 REST `modules --type task --id` / `task options`） |
+| GET | `/task-ajaxGetExecutionTasks-{executionID}.html` | 执行下任务对（较宽；Web 父任务下拉实际用 `getParentTaskPairs`，见 `task options`） |
 
 ---
 

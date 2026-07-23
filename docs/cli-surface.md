@@ -204,7 +204,7 @@ zqq-zentao comment list|add|edit …
 
 | 模块 | 列表/详情 | create / update / delete | 动作 |
 |------|-----------|--------------------------|------|
-| `task` | ✅ | ✅ REST（`task create\|update\|delete`，需 `--execution` 创建） | ✅ `start` `finish` `close` `activate` `assign` |
+| `task` | ✅ | ✅ REST（`task create\|update\|delete`，需 `--execution` 创建） | ✅ `start` `finish` `close` `activate` `assign`；**`update` 改字段与 Web edit 同路，关闭态不必 activate**；只读 **`task options <id>`** 查 execution/module/parent 可填项（`--execution` 可预览换执行后的 module/parent） |
 | `bug` | ✅ | ✅ REST（`bug create\|update\|delete`，需 `--product` 创建） | ✅ `confirm` `resolve` `close` `activate` `assign` |
 | `story` | ✅ | ✅ REST（`story create\|update\|delete`，需 `--product` 创建） | ✅ `change` `close` `activate` `assign` `review` `submitreview` `recall` |
 | `requirement` / `epic` | ⏳ 列表可并入 story 族或独立 | ⏳ | ⏳ 同 story |

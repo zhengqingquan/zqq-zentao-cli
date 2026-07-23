@@ -17,6 +17,8 @@ def capability(args: argparse.Namespace) -> str:
     if args.cmd == "task":
         if is_id_token(args.op) and args.id is None:
             return "task"
+        if str(args.op).strip().lower() == "options":
+            return "task.options"
         return "task.write"
     if args.cmd == "bug":
         return "bug" if (is_id_token(args.op) and args.id is None) else "bug.write"

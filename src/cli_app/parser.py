@@ -300,13 +300,16 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_task = sub.add_parser(
         "task",
-        help="Task detail or write: task <id> | task create|update|delete|start|…",
+        help="Task detail or write: task <id> | task create|update|delete|options|start|…",
     )
     p_task.add_argument(
         "op",
-        help="Task id (detail) or action: create|update|delete|start|finish|close|activate|assign",
+        help=(
+            "Task id (detail) or action: create|update|delete|options|"
+            "start|finish|close|activate|assign"
+        ),
     )
-    p_task.add_argument("id", nargs="?", help="Task id for write/actions")
+    p_task.add_argument("id", nargs="?", help="Task id for write/actions/options")
     add_write_flags(p_task)
 
     p_bug = sub.add_parser(

@@ -89,6 +89,8 @@
 | testcase create 要 steps | `requireFields`；用 `--data '{"steps":[…]}'` |
 | create 的 path scope | `write_dispatch` 会从 body **剔除** `--product`/`--execution`/`--project`（已在 URL）；testtask 仍保留 body 内 product/execution/build |
 | testtask create 源码 | `testtasks.php` post 里 `$build` 未定义（应为 `$buildID`）；建单主要读 `$_POST`，真机再确认 |
+| 任务详情 `operateMenu` | REST 只回 **mainActions**（如 closed→`activate`）；**不含** Web 的 suffix `edit`。关闭态仍可 `task update`（REST PUT=`task::edit`，与 `/task-edit-{id}.html` 同路），**不必**先 activate。详情经 `enrich_task_detail` 会补上 `edit` + `canFieldEdit` |
+| 任务改 execution/module/parent | 无专用 REST「选项」API；Web edit 分别用 `getByProject` / `getTaskOptionMenu` / `getParentTaskPairs`。CLI：`task options <id>`（REST 拼装；parent 为客户端按同源规则过滤）或拆开 `executions --project` / `modules --type task --id` |
 | auto 降级 | 仅双能力 + `--backend auto`；显式 `--backend` 不降级 |
 
 源码查阅：[`.cursor/rules/zentao-source-lookup.mdc`](../.cursor/rules/zentao-source-lookup.mdc)。  
@@ -115,7 +117,9 @@ PATHINFO：[zentao-web-pathinfo.md](./zentao-web-pathinfo.md)。
 | `src/rest/browse_filter.py` | bugs/stories → `status=` browseType |
 | `src/rest/client.py` | REST 客户端（写始终 v1 session） |
 | `src/confirm_util.py` / `payload.py` | 写前确认、`--data` 合并 |
-| `src/services/bugs.py` / `tasks.py` / `stories.py` | 三角写确认层 |
+| `src/services/bugs.py` / `tasks.py` / `stories.py` | 三角写确认层；`get_task` 经 `enrich_task_detail` |
+| `src/services/task_options.py` | `task options`：execution/module/parent 可填项 |
+| `src/task_shape.py` | 列表 summarize；详情补 `edit`/`canFieldEdit`（勿把 mainActions 当能否改字段） |
 | `src/services/todos.py` / `testcases.py` / `testsuites.py` / `testtasks.py` | P2 写确认层 |
 | `src/web/my_pages.py` | 「我的」注册表 + 分页 PATHINFO |
 | `src/web/lists.py` / `comments.py` | dtable 翻页；备注 |
@@ -147,3 +151,4 @@ PATHINFO：[zentao-web-pathinfo.md](./zentao-web-pathinfo.md)。
 | 2026-07-24 | REST v1/v2/Web；`--api`；表驱动写；P3 体验项落地 |
 | 2026-07-24 | **P2 首刀**：todo + testcase/testsuite/testtask REST 写（对照 22.3；无真机） |
 | 2026-07-24 | 审查：create 剔除 path scope；P1 标暂缓；下一刀改默认 P2 续；坑表补 todo/test* |
+| 2026-07-24 | 任务关闭态仍可字段编辑：`enrich_task_detail`；handoff/channel-matrix/pathinfo 对齐 Web `task-edit` |

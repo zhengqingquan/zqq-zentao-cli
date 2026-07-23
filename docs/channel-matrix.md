@@ -85,6 +85,8 @@ REST 路径：[zentao-rest-apiv1.md](./zentao-rest-apiv1.md)（**默认读/写**
 | 场景 | Web | REST | CLI 结论 |
 |------|-----|------|----------|
 | Bug/Task/Story CUD + 状态动作 | 表单 | 有稳定 entry | ✅ **rest** + `--yes` |
+| **任务改名称/描述（含已关闭）** | `/task-edit-{id}.html` → `task::edit` | `PUT /tasks/:id` → 同 `edit` | ✅ **rest** `task update`；**不必**先 `activate`。勿仅看详情 `operateMenu`（REST 只有 mainActions） |
+| **任务改 execution/module/parent 选项** | edit 页：`getByProject` / `getTaskOptionMenu`；换执行 AJAX `tree-ajaxGetOptionMenu`；父任务 `getParentTaskPairs`（无专用 AJAX 刷新） | `GET /projects/:id/executions`；`GET /modules?type=task&id=`；父任务无专用 REST | ✅ **rest** `task options <id>`（拼装）；亦可拆开 `executions --project` / `modules --type task --id` |
 | 备注 list/add/edit | `action-ajaxGetList` / comment | `/comments` 弱或不适合本流程 | ✅ **仅 web** |
 | 计划/测试/反馈等写 | 表单 | 部分有 entry | ⏳ P2；优先试 REST，不通再 Web |
 
@@ -107,6 +109,7 @@ REST 路径：[zentao-rest-apiv1.md](./zentao-rest-apiv1.md)（**默认读/写**
 | Story 产品列表 | `module/product/model.php` `getStories`；REST `stories.php` |
 | 任务 search | `api/v1/entries/tasks.php`；CLI `rest/tasks.py` |
 | 备注 | `module/action/control.php` |
+| 任务编辑（含关闭态） | Web `task::edit`；REST `api/v1/entries/task.php` `put`；`isClickable` 对 `edit` 不拦 closed |
 | REST 路由表 | `config/apiv1.php` |
 
 ---

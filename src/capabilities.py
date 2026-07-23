@@ -18,6 +18,7 @@ CAPABILITIES: dict[str, frozenset[BackendName]] = {
     "tasks.list": frozenset({"rest"}),
     "task": frozenset({"web", "rest"}),
     "task.write": frozenset({"rest"}),
+    "task.options": frozenset({"rest"}),
     "bug": frozenset({"rest"}),
     "bug.write": frozenset({"rest"}),
     "story": frozenset({"rest"}),

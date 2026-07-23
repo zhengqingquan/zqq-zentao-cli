@@ -13,6 +13,7 @@ from ..protocol import ZenTaoClient
 from ..services import bugs as bug_svc
 from ..services import resources as resource_svc
 from ..services import stories as story_svc
+from ..services import task_options as task_options_svc
 from ..services import tasks as task_svc
 from ..services import testcases as testcase_svc
 from ..services import testsuites as testsuite_svc
@@ -75,9 +76,19 @@ WRITE_NOUNS: dict[str, WriteNoun] = {
     "task": WriteNoun(
         name="task",
         ops=frozenset(
-            {"create", "update", "delete", "start", "finish", "close", "activate", "assign"}
+            {
+                "create",
+                "update",
+                "delete",
+                "start",
+                "finish",
+                "close",
+                "activate",
+                "assign",
+                "options",
+            }
         ),
-        ops_help="create|update|delete|start|finish|close|activate|assign",
+        ops_help="create|update|delete|start|finish|close|activate|assign|options",
         create_scope="execution",
         create_defaults={},
         require_on_create=(),
@@ -245,6 +256,18 @@ def dispatch_write(noun: WriteNoun, client: ZenTaoClient, args: argparse.Namespa
     oid = args.id
     if not oid:
         raise SystemExit(f"{noun.name} {op} requires <id>")
+    if op == "options":
+        if noun.name != "task":
+            raise SystemExit(f"{noun.name} does not support options")
+        emit(
+            task_options_svc.edit_options(
+                client,
+                oid,
+                execution_id=getattr(args, "execution", None),
+            ),
+            is_list=False,
+        )
+        return 0
     if op == "update":
         emit(noun.update(client, oid, body_from_args(args), yes=yes), is_list=False)
         return 0

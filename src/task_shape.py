@@ -6,6 +6,10 @@ from __future__ import annotations
 
 from typing import Any
 
+# ZenTao view config: suffixActions (see module/task/config.php).
+# REST GET /tasks/:id only returns mainActions in operateMenu — omitting edit.
+_TASK_SUFFIX_ACTIONS = ("edit", "create", "delete", "view")
+
 
 def user_field(val: Any) -> str | None:
     """Normalize ZenTao user-ish values to a display/account string."""
@@ -59,3 +63,23 @@ def summarize_task(row: dict[str, Any]) -> dict[str, Any]:
         "openedDate": row.get("openedDate"),
         "desc": row.get("desc"),
     }
+
+
+def enrich_task_detail(row: dict[str, Any]) -> dict[str, Any]:
+    """Augment task detail so CLI/agents do not confuse mainActions with edit.
+
+    ZenTao ``isClickable(..., 'edit')`` does **not** require activate for closed
+    tasks; Web edit is ``/task-edit-{id}.html``, REST ``PUT /tasks/:id`` → same
+    ``task::edit``. REST detail only lists ``mainActions`` in ``operateMenu``.
+    """
+    out = dict(row)
+    main = [str(x) for x in (out.get("operateMenu") or []) if x]
+    out["operateMenuMain"] = list(main)
+    merged = list(main)
+    for name in _TASK_SUFFIX_ACTIONS:
+        if name not in merged:
+            merged.append(name)
+    out["operateMenu"] = merged
+    # Field edit (name/desc/…) vs status actions (start/finish/activate/…).
+    out["canFieldEdit"] = True
+    return out

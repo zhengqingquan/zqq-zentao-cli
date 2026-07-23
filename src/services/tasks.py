@@ -9,6 +9,7 @@ from typing import Any
 from ..confirm_util import confirm_or_exit
 from ..list_filter import filter_rows
 from ..protocol import ZenTaoClient
+from ..task_shape import enrich_task_detail
 
 
 def my_tasks(client: ZenTaoClient) -> list[dict[str, Any]]:
@@ -63,7 +64,7 @@ def execution_tasks(
 
 
 def get_task(client: ZenTaoClient, task_id: str | int) -> dict[str, Any]:
-    return client.get_task(task_id)
+    return enrich_task_detail(client.get_task(task_id))
 
 
 def create_task(
