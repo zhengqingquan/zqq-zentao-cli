@@ -20,6 +20,7 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools]
 packages = [
     "zqq_zentao_cli",
+    "zqq_zentao_cli.cli_app",
     "zqq_zentao_cli.web",
     "zqq_zentao_cli.rest",
     "zqq_zentao_cli.services",
@@ -27,6 +28,7 @@ packages = [
 
 [tool.setuptools.package-dir]
 "zqq_zentao_cli" = "src"
+"zqq_zentao_cli.cli_app" = "src/cli_app"
 "zqq_zentao_cli.web" = "src/web"
 "zqq_zentao_cli.rest" = "src/rest"
 "zqq_zentao_cli.services" = "src/services"
