@@ -18,6 +18,7 @@ from ..services import auth as auth_svc
 from ..services import comments as comment_svc
 from ..services import my_pages as my_page_svc
 from ..services import resources as resource_svc
+from ..services import summary as summary_svc
 from ..services import tasks as task_svc
 from ..user_resolve import resolve_optional
 from ..web.my_pages import my_page_by_cmd
@@ -55,6 +56,27 @@ def resolve_task_user_filters(
         raise
 
 
+def _scope_filter_meta(args: argparse.Namespace) -> dict[str, Any]:
+    meta: dict[str, Any] = {}
+    for key in (
+        "product",
+        "project",
+        "execution",
+        "program",
+        "assignedTo",
+        "openedBy",
+        "finishedBy",
+        "resolvedBy",
+        "closedBy",
+        "status",
+        "pri",
+    ):
+        val = getattr(args, key, None)
+        if val is not None and str(val).strip() != "":
+            meta[key] = val
+    return meta
+
+
 def dispatch_registry(client: Any, args: argparse.Namespace) -> bool:
     """Handle registry-driven list/detail commands. Returns True if handled."""
     list_res = resource_by_list_cmd(args.cmd)
@@ -79,28 +101,41 @@ def dispatch_registry(client: Any, args: argparse.Namespace) -> bool:
         )
         status = resource_svc.status_from_args(args) if list_res.user_filters else None
         pri = resource_svc.pri_from_args(args) if list_res.user_filters else None
+        count_only = bool(getattr(args, "count_only", False))
         page = getattr(args, "page", 1)
-        limit = getattr(args, "limit", 50)
-        emit(
-            resource_svc.list_by_cmd(
-                client,
-                args.cmd,
-                page=page,
-                limit=limit,
-                scopes=scopes,
-                path_param=path_param,
-                query=query,
-                assigned_to=filters.get("assigned_to"),
-                opened_by=filters.get("opened_by"),
-                finished_by=filters.get("finished_by"),
-                resolved_by=filters.get("resolved_by"),
-                closed_by=filters.get("closed_by"),
-                status=status,
-                pri=pri,
-            ),
-            is_list=True,
-            fields=fields_for(args.cmd, args),
+        limit = 1 if count_only else getattr(args, "limit", 50)
+        payload = resource_svc.list_by_cmd(
+            client,
+            args.cmd,
+            page=page,
+            limit=limit,
+            scopes=scopes,
+            path_param=path_param,
+            query=query,
+            assigned_to=filters.get("assigned_to"),
+            opened_by=filters.get("opened_by"),
+            finished_by=filters.get("finished_by"),
+            resolved_by=filters.get("resolved_by"),
+            closed_by=filters.get("closed_by"),
+            status=status,
+            pri=pri,
         )
+        if count_only and list_res.list_key:
+            emit(
+                summary_svc.count_only_from_list(
+                    payload,
+                    kind=args.cmd,
+                    list_key=list_res.list_key,
+                    filters=_scope_filter_meta(args),
+                ),
+                is_list=False,
+            )
+        else:
+            emit(
+                payload,
+                is_list=True,
+                fields=fields_for(args.cmd, args),
+            )
         return True
 
     detail_res = resource_by_detail_cmd(args.cmd)
@@ -109,6 +144,48 @@ def dispatch_registry(client: Any, args: argparse.Namespace) -> bool:
         return True
 
     return False
+
+
+def _dispatch_summary(client: Any, args: argparse.Namespace) -> int:
+    kind = str(args.kind)
+    if kind in ("bugs", "stories"):
+        scopes = {
+            "product": getattr(args, "product", None),
+            "project": getattr(args, "project", None),
+            "execution": getattr(args, "execution", None),
+        }
+        emit(
+            summary_svc.summarize_bugs_or_stories(
+                client,
+                kind,
+                scopes=scopes,
+                assigned_to=getattr(args, "assignedTo", None),
+                opened_by=getattr(args, "openedBy", None),
+                resolved_by=getattr(args, "resolvedBy", None),
+                closed_by=getattr(args, "closedBy", None),
+                status=resource_svc.status_from_args(args),
+                pri=resource_svc.pri_from_args(args),
+                facet=getattr(args, "facet", None),
+            ),
+            is_list=False,
+        )
+        return 0
+    filters = resolve_task_user_filters(client, args)
+    emit(
+        summary_svc.summarize_tasks(
+            client,
+            execution=getattr(args, "execution", None),
+            assigned_to=filters.get("assigned_to"),
+            opened_by=filters.get("opened_by"),
+            finished_by=filters.get("finished_by"),
+            closed_by=filters.get("closed_by"),
+            status=resource_svc.status_from_args(args),
+            pri=resource_svc.pri_from_args(args),
+            facet=getattr(args, "facet", None),
+        ),
+        is_list=False,
+    )
+    return 0
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -152,6 +229,9 @@ def main(argv: list[str] | None = None) -> int:
         emit(client.whoami(), is_list=False)
         return 0
 
+    if args.cmd == "summary":
+        return _dispatch_summary(client, args)
+
     if my_page_by_cmd(args.cmd) is not None:
         rows = my_page_svc.list_my(
             client,
@@ -167,37 +247,59 @@ def main(argv: list[str] | None = None) -> int:
         status = resource_svc.status_from_args(args)
         pri = resource_svc.pri_from_args(args)
         fields = fields_for("tasks", args)
+        count_only = bool(getattr(args, "count_only", False))
         if args.execution:
-            emit(
-                task_svc.execution_tasks(
-                    client,
-                    args.execution,
-                    assigned_to=filters.get("assigned_to"),
-                    opened_by=filters.get("opened_by"),
-                    finished_by=filters.get("finished_by"),
-                    closed_by=filters.get("closed_by"),
-                    status=status,
-                    pri=pri,
-                ),
-                is_list=True,
-                fields=fields,
+            rows = task_svc.execution_tasks(
+                client,
+                args.execution,
+                assigned_to=filters.get("assigned_to"),
+                opened_by=filters.get("opened_by"),
+                finished_by=filters.get("finished_by"),
+                closed_by=filters.get("closed_by"),
+                status=status,
+                pri=pri,
             )
+            if count_only:
+                emit(
+                    summary_svc.count_only_from_list(
+                        {
+                            "tasks": rows,
+                            "total": len(rows),
+                            "backend": getattr(client, "backend", None),
+                        },
+                        kind="tasks",
+                        list_key="tasks",
+                        filters=_scope_filter_meta(args),
+                    ),
+                    is_list=False,
+                )
+            else:
+                emit(rows, is_list=True, fields=fields)
         else:
-            emit(
-                task_svc.list_tasks(
-                    client,
-                    page=args.page,
-                    limit=args.limit,
-                    assigned_to=filters.get("assigned_to"),
-                    opened_by=filters.get("opened_by"),
-                    finished_by=filters.get("finished_by"),
-                    closed_by=filters.get("closed_by"),
-                    status=status,
-                    pri=pri,
-                ),
-                is_list=True,
-                fields=fields,
+            limit = 1 if count_only else args.limit
+            payload = task_svc.list_tasks(
+                client,
+                page=args.page,
+                limit=limit,
+                assigned_to=filters.get("assigned_to"),
+                opened_by=filters.get("opened_by"),
+                finished_by=filters.get("finished_by"),
+                closed_by=filters.get("closed_by"),
+                status=status,
+                pri=pri,
             )
+            if count_only:
+                emit(
+                    summary_svc.count_only_from_list(
+                        payload,
+                        kind="tasks",
+                        list_key="tasks",
+                        filters=_scope_filter_meta(args),
+                    ),
+                    is_list=False,
+                )
+            else:
+                emit(payload, is_list=True, fields=fields)
         return 0
 
     write_noun = WRITE_NOUNS.get(args.cmd)

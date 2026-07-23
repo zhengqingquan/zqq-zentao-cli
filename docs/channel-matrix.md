@@ -77,6 +77,7 @@ REST 路径：[zentao-rest-apiv1.md](./zentao-rest-apiv1.md)（**默认读/写**
 | Bug：产品下指派**给我** | browse `assigntome` | `status=assigntome` | ✅ **rest**（browseType 映射） |
 | Bug：产品下指派给**他人** | 高级搜索 / 客户端 | **无**任意账号过滤 | ⚠ **客户端全量滤**（慢）；stderr 提示 |
 | Bug：按行状态 active | browse `unresolved` | `status=unresolved` | ✅ 映射；勿把 `status` 当字段直传 |
+| Bug/任务个数与分面 | 列表 + 人工数 | 同左 + 客户端聚合 | ✅ `summary` / `--count-only`（rest） |
 | Story：同上 | `assignedtome` / `activestory`… | 同左（`status=`） | ✅ 同 bugs |
 | users 关键词搜 | — | `/users` 无 search | ✅ **客户端扫**（`users --search`） |
 

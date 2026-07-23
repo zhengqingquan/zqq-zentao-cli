@@ -60,6 +60,7 @@
 | **低** | `--finishedBy`/`--resolvedBy`/`--closedBy`/`--pri`；更多 `--search` | ✅ |
 | **低** | `auto` 双通道失败降级 | ✅ |
 | **低** | REST my-tasks：首拉 500 + total bump | ✅（离线；真机可再确认） |
+| **中** | 统计面：`--count-only` + `summary bugs\|tasks\|stories --facet` | ✅（离线；真机可再确认） |
 
 可选仍 ⏳：`my-issues` / `my-risks` / `my-meetings`；`--severity`。
 
@@ -73,6 +74,9 @@
 
 | 现象 | 原因 / 对策 |
 |------|-------------|
+| `summary tasks` 无 `-e` | 可能截断：`truncated=true`，`total`=样本数（与分面一致），`reportedTotal`=服务端声称总数；加 `-e` 更稳 |
+| `bugs --status active` | 映射 browseType **`unresolved`**（源码多为 `status=active`）；与行字段分面若出现 `confirmed` 等以实机为准 |
+| `bugs --status resolved` | 映射 browseType **`toclosed`（待关闭）**，不是「全部已解决」；未解决用 `active`/`unresolved` |
 | 问「张三的任务」 | `--assignedTo 张三` 解析实名；多命中列候选。或 `users --search 张三` |
 | `GET /bugs` 要 product | 无全局 my-bugs REST → Web `my-bugs` 或 `bugs --product` |
 | 查他人 bugs/stories | REST 无任意账号过滤；本人/状态走 `browse_filter.py`；他人客户端全量。见 channel-matrix |
@@ -110,6 +114,8 @@ PATHINFO：[zentao-web-pathinfo.md](./zentao-web-pathinfo.md)。
 | `src/config.py` | 全局配置（含 `ZENTAO_API`） |
 | `src/user_resolve.py` | 姓名/账号解析、短缓存 |
 | `src/list_filter.py` | 客户端用户/状态/pri/关键词过滤 |
+| `src/list_stats.py` | `--count-only` / `summary` 分面聚合 |
+| `src/services/summary.py` | bugs/stories/tasks 统计拉取 |
 | `src/rest/resources.py` | REST **v1** 只读注册表（`SPECIAL_CMDS` 含写名词） |
 | `src/rest/resources_v2.py` / `v2_search.py` | REST **v2** 只读 |
 | `src/rest/tasks.py` | my-tasks / search / execution 任务 |

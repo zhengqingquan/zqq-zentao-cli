@@ -53,6 +53,23 @@ def test_bugs_parser_has_status_and_users_search() -> None:
     assert users.search == "张"
 
 
+def test_count_only_and_summary_parser() -> None:
+    parser = build_parser()
+    bugs = parser.parse_args(
+        ["bugs", "--project", "3337", "--status", "active", "--count-only"]
+    )
+    assert bugs.count_only is True
+    assert bugs.project == "3337"
+    tasks = parser.parse_args(["tasks", "-e", "1664", "--count-only"])
+    assert tasks.count_only is True
+    summary = parser.parse_args(
+        ["summary", "bugs", "--project", "3337", "--facet", "status,pri"]
+    )
+    assert summary.kind == "bugs"
+    assert summary.facet == "status,pri"
+    assert summary.project == "3337"
+
+
 def test_pick_fields_parse() -> None:
     from zqq_zentao_cli.cli import _fields_for, _parse_pick
 

@@ -89,11 +89,15 @@ zqq-zentao comment list|add|edit …
 | `--pri` / `--severity` | 优先级等 | ✅ `--pri`：`tasks` / `bugs` / `stories`（逗号多值）；`--severity` 仍 ⏳ |
 | `--search` | 关键词 | ✅ `users`；✅ `projects`/`products`/`programs`；✅ `executions`/`builds`/`releases`/`productplans`/`testcases`/`testsuites`/`testtasks`/`feedbacks`/`tickets`/`todos`（name/title/code 客户端） |
 | `--pick` | 摘取字段（全局，逗号分隔） | ✅ |
+| `--count-only` | 只返回 `{total,filters}`（列表 limit=1，不吐行） | ✅ `bugs` / `stories` / `tasks` |
+| `summary <kind>` | 分面统计（默认 `status,pri`） | ✅ `summary bugs\|tasks\|stories` |
 
 说明：
 
 - `tasks --assignedTo`：先姓名→账号解析，再 REST `GET /tasks?search=1&assignedTo=…`，客户端校对；可加 `--status`
 - `bugs` / `stories`：优先走 REST `status=`（browseType）。`--assignedTo`/`--openedBy` 为**当前用户**时用 `assigntome`/`openedbyme`（stories 为 `assignedtome`）；`--status active` 等映射为 `unresolved`/`activestory` 等。查**他人**名下仍拉全量后客户端过滤（慢），stderr 会提示；查自己优先 `my-bugs` / `my-stories`
+- Bug 行状态 vs browseType：`--status active`→`unresolved`（未解决）；`--status resolved`→`toclosed`（**待关闭**，不是全部已解决）；`--status closed` 无专用 browseType，会拉 `all` 再客户端滤
+- 统计：`bugs --project 12 --status active --count-only`；分面 `summary bugs --project 12` 或 `summary bugs --project 12 --status active --facet pri`
 - `tasks --openedBy` 单独使用时请加 `-e <executionId>`（全局 search 无 openedBy 字段）
 - 鉴权日志（`auth: rest-token(...)` 等）打在 **stderr**，勿与 stdout JSON 混用
 - REST 版本：`--api v1|v2` / `ZENTAO_API`（默认 v1）；**写操作始终 v1**；v2 为并行只读（见 channel-matrix）
@@ -189,8 +193,10 @@ zqq-zentao comment list|add|edit …
 | `tasks` | ✅ | 仅 rest（无 `-e`） |
 | `tasks -e` | ✅ | web/rest |
 | `task <id>` | ✅ | web/rest |
+| `summary bugs\|tasks\|stories` | ✅ | rest（tasks 无 `-e` 时同 `tasks.list`） |
+| `bugs\|stories\|tasks --count-only` | ✅ | 同对应列表 |
 
-约定：**「某产品下 Bug」用 `bugs --product`；「我的 Bug」用 `my-bugs`。**
+约定：**「某产品下 Bug」用 `bugs --product`；「我的 Bug」用 `my-bugs`。** 个数/分面优先 `summary` / `--count-only`，避免多次拉列表拼 total。
 
 ---
 

@@ -14,6 +14,12 @@ def capability(args: argparse.Namespace) -> str:
         return f"comment.{args.c_cmd}"
     if args.cmd == "tasks" and not args.execution:
         return "tasks.list"
+    if args.cmd == "summary":
+        if args.kind == "tasks" and not getattr(args, "execution", None):
+            return "tasks.list"
+        if args.kind == "tasks":
+            return "tasks"
+        return args.kind  # bugs / stories registry caps
     if args.cmd == "task":
         if is_id_token(args.op) and args.id is None:
             return "task"

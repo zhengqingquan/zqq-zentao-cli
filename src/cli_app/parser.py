@@ -76,6 +76,14 @@ def _add_pri_flag(parser: argparse.ArgumentParser) -> None:
     )
 
 
+def _add_count_only_flag(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--count-only",
+        action="store_true",
+        help="Return only {total, filters} (uses limit=1; omits row list)",
+    )
+
+
 def _add_my_page_flags(parser: argparse.ArgumentParser, page_cmd: str) -> None:
     page = my_page_by_cmd(page_cmd)
     assert page is not None
@@ -180,6 +188,7 @@ def _register_resource_parsers(sub: argparse._SubParsersAction[Any]) -> None:
                 _add_user_filter_flags(p, res.user_filters)
                 _add_status_flag(p)
                 _add_pri_flag(p)
+                _add_count_only_flag(p)
             for qname in res.query_params:
                 req = qname in res.required_query
                 p.add_argument(
@@ -296,7 +305,34 @@ def build_parser() -> argparse.ArgumentParser:
     )
     _add_status_flag(p_tasks)
     _add_pri_flag(p_tasks)
+    _add_count_only_flag(p_tasks)
     _add_page_limit(p_tasks, limit=100)
+
+    p_summary = sub.add_parser(
+        "summary",
+        help="Facet counts for bugs|tasks|stories (status/pri/…); prefer over multi list calls",
+    )
+    p_summary.add_argument(
+        "kind",
+        choices=("bugs", "tasks", "stories"),
+        help="What to summarize",
+    )
+    p_summary.add_argument("--product", default=None, help="Scope by product ID")
+    p_summary.add_argument("--project", default=None, help="Scope by project ID")
+    p_summary.add_argument(
+        "--execution", "-e", default=None, help="Scope by execution ID (tasks: preferred)"
+    )
+    _add_user_filter_flags(
+        p_summary,
+        ("assignedTo", "openedBy", "finishedBy", "resolvedBy", "closedBy"),
+    )
+    _add_status_flag(p_summary)
+    _add_pri_flag(p_summary)
+    p_summary.add_argument(
+        "--facet",
+        default=None,
+        help="Comma facets: status,pri,assignedTo,openedBy (default status,pri)",
+    )
 
     p_task = sub.add_parser(
         "task",
