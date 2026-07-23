@@ -6,7 +6,7 @@ from __future__ import annotations
 import sys
 from typing import Any
 
-from ..list_filter import apply_user_filters, slice_rows
+from ..list_filter import apply_user_filters, filter_rows_by_search, slice_rows
 from ..protocol import ZenTaoClient
 from ..rest.browse_filter import plan_bugs_stories_filter
 from ..rest.client import RestClient
@@ -19,6 +19,21 @@ from ..rest.v2_search import (
 from ..user_resolve import resolve_optional, search_users
 
 _NAME_CODE_SEARCH_KEYS = frozenset({"projects", "products", "programs"})
+# Client-side name/title/code search (when --search on these list cmds).
+_TEXT_SEARCH_KEYS = frozenset(
+    {
+        "executions",
+        "productplans",
+        "releases",
+        "builds",
+        "testcases",
+        "testsuites",
+        "testtasks",
+        "feedbacks",
+        "tickets",
+        "todos",
+    }
+)
 
 
 def _as_rest(client: ZenTaoClient) -> RestClient:
@@ -38,7 +53,11 @@ def list_by_cmd(
     query: dict[str, str] | None = None,
     assigned_to: str | None = None,
     opened_by: str | None = None,
+    finished_by: str | None = None,
+    resolved_by: str | None = None,
+    closed_by: str | None = None,
     status: str | None = None,
+    pri: str | None = None,
 ) -> dict[str, Any]:
     res = resource_by_list_cmd(cmd)
     if res is None:
@@ -74,12 +93,30 @@ def list_by_cmd(
             query=q or None,
         )
 
+    # other modules --search (name/title/code client scan)
+    if res.key in _TEXT_SEARCH_KEYS and search_q:
+        return _search_text_fields(
+            rest,
+            res,
+            search_q,
+            page=page,
+            limit=limit,
+            scopes=scopes,
+            path_param=path_param,
+            query=q or None,
+        )
+
     at = resolve_optional(rest.list_users, assigned_to) if assigned_to else None
     ob = resolve_optional(rest.list_users, opened_by) if opened_by else None
+    fb = resolve_optional(rest.list_users, finished_by) if finished_by else None
+    rb = resolve_optional(rest.list_users, resolved_by) if resolved_by else None
+    cb = resolve_optional(rest.list_users, closed_by) if closed_by else None
     st = (status or "").strip() or None
+    pr = (pri or "").strip() or None
 
-    if (at or ob or st) and res.list_key and res.paginated:
-        if res.key in ("bugs", "stories"):
+    extra = bool(fb or rb or cb or pr)
+    if (at or ob or st or extra) and res.list_key and res.paginated:
+        if res.key in ("bugs", "stories") and not extra:
             return _list_bugs_stories_filtered(
                 rest,
                 res,
@@ -92,6 +129,30 @@ def list_by_cmd(
                 opened_by=ob,
                 status=st,
             )
+        if res.key in ("bugs", "stories") and extra:
+            # Prefer browseType for self assigned/opened/status, then apply extra client filters.
+            base = _list_bugs_stories_filtered(
+                rest,
+                res,
+                page=1,
+                limit=100000,
+                scopes=scopes,
+                path_param=path_param,
+                query=q or None,
+                assigned_to=at,
+                opened_by=ob,
+                status=st,
+            )
+            return apply_user_filters(
+                base,
+                res.list_key,
+                finished_by=fb,
+                resolved_by=rb,
+                closed_by=cb,
+                pri=pr,
+                page=page,
+                limit=limit,
+            )
         return _list_all_then_filter(
             rest,
             res,
@@ -102,7 +163,11 @@ def list_by_cmd(
             query=q or None,
             assigned_to=at,
             opened_by=ob,
+            finished_by=fb,
+            resolved_by=rb,
+            closed_by=cb,
             status=st,
+            pri=pr,
         )
     out = rest.list_resource(
         res.key,
@@ -115,6 +180,62 @@ def list_by_cmd(
     if isinstance(out, dict):
         out.setdefault("api", rest.api_version)
     return out
+
+
+def _search_text_fields(
+    rest: RestClient,
+    res: Resource,
+    search_q: str,
+    *,
+    page: int,
+    limit: int,
+    scopes: dict[str, str | int | None] | None,
+    path_param: str | None,
+    query: dict[str, str] | None,
+) -> dict[str, Any]:
+    """Pull scoped pages then filter by name/title/code."""
+    assert res.list_key
+    all_rows: list[dict[str, Any]] = []
+    seen: set[Any] = set()
+    cur = 1
+    page_size = 200
+    reported_total = 0
+    while cur <= 100:
+        data = rest.list_resource(
+            res.key,
+            page=cur,
+            limit=page_size,
+            scopes=scopes,
+            path_param=path_param,
+            query=query,
+        )
+        rows = [r for r in (data.get(res.list_key) or []) if isinstance(r, dict)]
+        reported_total = int(data.get("total") or reported_total or len(rows))
+        if not rows:
+            break
+        for row in rows:
+            rid = row.get("id")
+            key = rid if rid is not None else id(row)
+            if key in seen:
+                continue
+            seen.add(key)
+            all_rows.append(row)
+        if reported_total and len(all_rows) >= reported_total:
+            break
+        if len(rows) < page_size:
+            break
+        cur += 1
+    matched = filter_rows_by_search(all_rows, search_q)
+    chunk, total = slice_rows(matched, page=page, limit=limit)
+    return {
+        res.list_key: chunk,
+        "page": max(1, int(page)),
+        "total": total,
+        "limit": max(1, int(limit)),
+        "backend": rest.backend,
+        "api": rest.api_version,
+        "searchMode": "client-text",
+    }
 
 
 def _search_name_code(
@@ -329,7 +450,11 @@ def _list_all_then_filter(
     query: dict[str, str] | None,
     assigned_to: str | None,
     opened_by: str | None,
+    finished_by: str | None = None,
+    resolved_by: str | None = None,
+    closed_by: str | None = None,
     status: str | None = None,
+    pri: str | None = None,
 ) -> dict[str, Any]:
     """Paginate the full scoped list, then apply filters + client page."""
     assert res.list_key
@@ -374,7 +499,11 @@ def _list_all_then_filter(
         res.list_key,
         assigned_to=assigned_to,
         opened_by=opened_by,
+        finished_by=finished_by,
+        resolved_by=resolved_by,
+        closed_by=closed_by,
         status=status,
+        pri=pri,
         page=page,
         limit=limit,
     )
@@ -405,21 +534,40 @@ def query_from_args(args: Any, res: Resource) -> dict[str, str]:
     return q
 
 
+_FILTER_ARG_MAP = {
+    "assignedTo": "assigned_to",
+    "openedBy": "opened_by",
+    "finishedBy": "finished_by",
+    "resolvedBy": "resolved_by",
+    "closedBy": "closed_by",
+}
+
+
 def user_filters_from_args(args: Any, res: Resource) -> dict[str, str | None]:
-    out: dict[str, str | None] = {"assigned_to": None, "opened_by": None}
+    out: dict[str, str | None] = {
+        "assigned_to": None,
+        "opened_by": None,
+        "finished_by": None,
+        "resolved_by": None,
+        "closed_by": None,
+    }
     for name in res.user_filters:
         val = getattr(args, name, None)
-        if val is None:
-            val = getattr(args, name.replace("To", "_to").lower(), None)
-        if name == "assignedTo" and val:
-            out["assigned_to"] = str(val)
-        elif name == "openedBy" and val:
-            out["opened_by"] = str(val)
+        key = _FILTER_ARG_MAP.get(name)
+        if key and val:
+            out[key] = str(val)
     return out
 
 
 def status_from_args(args: Any) -> str | None:
     val = getattr(args, "status", None)
+    if val is None or val == "":
+        return None
+    return str(val)
+
+
+def pri_from_args(args: Any) -> str | None:
+    val = getattr(args, "pri", None)
     if val is None or val == "":
         return None
     return str(val)

@@ -51,6 +51,52 @@ def test_work_path() -> None:
     )
 
 
+def test_requirement_and_epic_registered() -> None:
+    req = my_page_by_cmd("my-requirements")
+    epic = my_page_by_cmd("my-epics")
+    assert req is not None and epic is not None
+    assert resolve_browse(req) == ("work", "assignedTo")
+    assert (
+        build_path(req, "work", "assignedTo")
+        == "/my-work-requirement-assignedTo-0-id_desc-0-200-1.html?zin=1"
+    )
+    assert (
+        build_path(epic, "contribute", "openedBy")
+        == "/my-contribute-epic-openedBy-0-id_desc-0-200-1.html?zin=1"
+    )
+
+
+def test_docs_contribute_only() -> None:
+    page = my_page_by_cmd("my-docs")
+    assert page is not None
+    assert resolve_browse(page) == ("contribute", "openedbyme")
+    assert resolve_browse(page, browse_type="editedbyme") == ("contribute", "editedbyme")
+    assert (
+        build_path(page, "contribute", "openedbyme")
+        == "/my-contribute-doc-openedbyme-0-id_desc-0-200-1.html?zin=1"
+    )
+
+
+def test_projects_browse_path() -> None:
+    page = my_page_by_cmd("my-projects")
+    assert page is not None
+    assert resolve_browse(page) == ("browse", "doing")
+    assert (
+        build_path(page, "browse", "doing")
+        == "/my-project-doing-id_desc-0-200-1.html?zin=1"
+    )
+
+
+def test_executions_browse_path() -> None:
+    page = my_page_by_cmd("my-executions")
+    assert page is not None
+    assert resolve_browse(page, browse_type="done") == ("browse", "done")
+    assert (
+        build_path(page, "browse", "undone")
+        == "/my-execution-undone-id_desc-0-200-1.html?zin=1"
+    )
+
+
 def test_todo_path_and_types() -> None:
     page = my_page_by_cmd("my-todos")
     assert page is not None

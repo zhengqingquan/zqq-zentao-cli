@@ -54,3 +54,23 @@ def test_prefer_web_without_token(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr("zqq_zentao_cli.capabilities.resolve_token", lambda: None)
     monkeypatch.setattr("zqq_zentao_cli.capabilities.env_backend", lambda: "auto")
     assert resolve_backend("my-tasks", cli_backend=None) == "web"
+
+
+def test_fallback_client_retries_peer(monkeypatch: pytest.MonkeyPatch) -> None:
+    from zqq_zentao_cli.factory import _FallbackClient
+
+    class Prim:
+        backend = "rest"
+
+        def whoami(self) -> dict:
+            raise SystemExit("Not logged in (rest)")
+
+    class Sec:
+        backend = "web"
+
+        def whoami(self) -> dict:
+            return {"account": "alice"}
+
+    client = _FallbackClient(Prim(), Sec(), capability="whoami")  # type: ignore[arg-type]
+    assert client.whoami()["account"] == "alice"
+    assert client.backend == "web"

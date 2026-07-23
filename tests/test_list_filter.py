@@ -35,6 +35,41 @@ def test_filter_rows_status() -> None:
     assert [r["id"] for r in filter_rows(rows, status="done")] == [3]
 
 
+def test_filter_rows_finished_resolved_closed_pri() -> None:
+    rows = [
+        {
+            "id": 1,
+            "finishedBy": "alice",
+            "resolvedBy": "bob",
+            "closedBy": "carol",
+            "pri": 1,
+        },
+        {
+            "id": 2,
+            "finishedBy": {"account": "alice"},
+            "resolvedBy": "bob",
+            "closedBy": "dave",
+            "pri": "2",
+        },
+        {"id": 3, "finishedBy": "eve", "pri": 1},
+    ]
+    assert [r["id"] for r in filter_rows(rows, finished_by="alice")] == [1, 2]
+    assert [r["id"] for r in filter_rows(rows, resolved_by="bob", closed_by="carol")] == [1]
+    assert [r["id"] for r in filter_rows(rows, pri="1")] == [1, 3]
+
+
+def test_filter_rows_by_search() -> None:
+    from zqq_zentao_cli.list_filter import filter_rows_by_search
+
+    rows = [
+        {"id": 1, "name": "Alpha Plan"},
+        {"id": 2, "title": "beta release"},
+        {"id": 3, "code": "GAMMA"},
+    ]
+    assert [r["id"] for r in filter_rows_by_search(rows, "beta")] == [2]
+    assert [r["id"] for r in filter_rows_by_search(rows, "a")] == [1, 2, 3]
+
+
 def test_apply_user_filters_with_status() -> None:
     payload = {
         "tasks": [

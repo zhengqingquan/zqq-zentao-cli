@@ -6,7 +6,13 @@ from __future__ import annotations
 
 import pytest
 
-from zqq_zentao_cli.user_resolve import resolve_account, resolve_optional, search_users
+from zqq_zentao_cli.user_resolve import (
+    clear_user_cache,
+    fetch_all_users,
+    resolve_account,
+    resolve_optional,
+    search_users,
+)
 
 
 def _users_payload() -> dict:
@@ -18,6 +24,17 @@ def _users_payload() -> dict:
         ],
         "total": 3,
     }
+
+
+class _FakeRest:
+    def __init__(self) -> None:
+        self.profile = {"server": "https://zentao.example.com", "account": "alice"}
+        self.calls = 0
+
+    def list_users(self, *, page: int = 1, limit: int = 50) -> dict:
+        self.calls += 1
+        assert page == 1
+        return _users_payload()
 
 
 def _list_users(*, page: int = 1, limit: int = 50) -> dict:
@@ -55,3 +72,15 @@ def test_resolve_optional_blank() -> None:
 def test_search_users() -> None:
     hits = search_users(_list_users, "张")
     assert {u["account"] for u in hits} == {"zhangsan", "zhangsi"}
+
+
+def test_user_cache_reuses_fetch() -> None:
+    clear_user_cache()
+    client = _FakeRest()
+    a = fetch_all_users(client.list_users)
+    b = fetch_all_users(client.list_users)
+    assert a == b
+    assert client.calls == 1
+    clear_user_cache()
+    fetch_all_users(client.list_users)
+    assert client.calls == 2

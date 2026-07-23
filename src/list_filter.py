@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Client-side user-field / status filters for list payloads."""
+"""Client-side user-field / status / pri filters for list payloads."""
 
 from __future__ import annotations
 
@@ -34,18 +34,52 @@ def row_status(row: dict[str, Any]) -> str:
     return str(val).strip()
 
 
+def row_pri(row: dict[str, Any]) -> str:
+    val = row.get("pri")
+    if val is None:
+        val = row.get("priority")
+    if val is None:
+        return ""
+    return str(val).strip()
+
+
+def parse_pri_set(pri: str | None) -> set[str] | None:
+    if pri is None:
+        return None
+    parts = {p.strip() for p in str(pri).split(",") if p.strip()}
+    return parts or None
+
+
 def filter_rows(
     rows: list[dict[str, Any]],
     *,
     assigned_to: str | None = None,
     opened_by: str | None = None,
+    finished_by: str | None = None,
+    resolved_by: str | None = None,
+    closed_by: str | None = None,
     status: str | None = None,
+    pri: str | None = None,
 ) -> list[dict[str, Any]]:
-    """Keep rows matching optional account / status filters (case-sensitive accounts)."""
+    """Keep rows matching optional account / status / pri filters."""
     want_assigned = (assigned_to or "").strip() or None
     want_opened = (opened_by or "").strip() or None
+    want_finished = (finished_by or "").strip() or None
+    want_resolved = (resolved_by or "").strip() or None
+    want_closed = (closed_by or "").strip() or None
     want_status = parse_status_set(status)
-    if not want_assigned and not want_opened and not want_status:
+    want_pri = parse_pri_set(pri)
+    if not any(
+        (
+            want_assigned,
+            want_opened,
+            want_finished,
+            want_resolved,
+            want_closed,
+            want_status,
+            want_pri,
+        )
+    ):
         return rows
     out: list[dict[str, Any]] = []
     for row in rows:
@@ -53,7 +87,15 @@ def filter_rows(
             continue
         if want_opened and row_account(row, "openedBy") != want_opened:
             continue
+        if want_finished and row_account(row, "finishedBy") != want_finished:
+            continue
+        if want_resolved and row_account(row, "resolvedBy") != want_resolved:
+            continue
+        if want_closed and row_account(row, "closedBy") != want_closed:
+            continue
         if want_status and row_status(row) not in want_status:
+            continue
+        if want_pri and row_pri(row) not in want_pri:
             continue
         out.append(row)
     return out
@@ -79,7 +121,11 @@ def apply_user_filters(
     *,
     assigned_to: str | None = None,
     opened_by: str | None = None,
+    finished_by: str | None = None,
+    resolved_by: str | None = None,
+    closed_by: str | None = None,
     status: str | None = None,
+    pri: str | None = None,
     page: int | None = None,
     limit: int | None = None,
 ) -> dict[str, Any]:
@@ -92,7 +138,11 @@ def apply_user_filters(
         dict_rows,
         assigned_to=assigned_to,
         opened_by=opened_by,
+        finished_by=finished_by,
+        resolved_by=resolved_by,
+        closed_by=closed_by,
         status=status,
+        pri=pri,
     )
     out = dict(payload)
     if page is not None and limit is not None:
@@ -104,4 +154,24 @@ def apply_user_filters(
     else:
         out[list_key] = filtered
         out["total"] = len(filtered)
+    return out
+
+
+def filter_rows_by_search(
+    rows: list[dict[str, Any]], q: str, *, fields: tuple[str, ...] = ("name", "title", "code")
+) -> list[dict[str, Any]]:
+    """Case-insensitive substring match on common text fields."""
+    needle = (q or "").strip().lower()
+    if not needle:
+        return rows
+    out: list[dict[str, Any]] = []
+    for row in rows:
+        hay_parts: list[str] = []
+        for f in fields:
+            val = row.get(f)
+            if val is None:
+                continue
+            hay_parts.append(str(val))
+        if needle in " ".join(hay_parts).lower():
+            out.append(row)
     return out

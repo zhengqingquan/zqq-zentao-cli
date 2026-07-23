@@ -14,7 +14,7 @@ ListResourceFn = Callable[..., dict[str, Any]]
 
 
 def _list_my_tasks_raw(
-    list_resource: ListResourceFn, *, rec_per_page: int = 200
+    list_resource: ListResourceFn, *, rec_per_page: int = 500
 ) -> dict[str, Any]:
     """Load assigned tasks via GET /tasks, working around APIv1 arg swap.
 
@@ -22,6 +22,7 @@ def _list_my_tasks_raw(
     ``my::task`` expects ``(browseType, param, orderBy, recTotal, recPerPage,
     pageID)``. So query ``page`` is treated as ``recPerPage``, and ``pageID``
     is always 1. We set ``page=<size>`` to fetch up to that many rows once.
+    When ``total`` exceeds the first page, refetch with ``page=<total>``.
     """
     size = max(1, int(rec_per_page))
     data = list_resource(
@@ -56,7 +57,7 @@ def _list_my_tasks_raw(
 
 def fetch_my_tasks(list_resource: ListResourceFn, account: str) -> list[dict[str, Any]]:
     """All tasks assigned to ``account`` (canonical rows)."""
-    data = _list_my_tasks_raw(list_resource, rec_per_page=200)
+    data = _list_my_tasks_raw(list_resource, rec_per_page=500)
     rows = data.get("tasks") or []
     mine = [x for x in rows if assigned_account(x) == account]
     if rows and not mine:
@@ -76,9 +77,9 @@ def list_my_tasks(
 
     page = max(1, int(page))
     limit = max(1, int(limit))
-    data = _list_my_tasks_raw(list_resource, rec_per_page=max(page * limit, limit, 100))
+    # Always full-fetch via workaround (page query = size); bump if total grows.
+    data = _list_my_tasks_raw(list_resource, rec_per_page=500)
     rows = [summarize_task(x) for x in (data.get("tasks") or [])]
-    # If server reported more than we got, bump fetch once.
     total_hint = int(data.get("total") or len(rows))
     if total_hint > len(rows):
         data = _list_my_tasks_raw(list_resource, rec_per_page=total_hint)
@@ -192,18 +193,26 @@ def search_tasks(
     *,
     assigned_to: str | None = None,
     opened_by: str | None = None,
+    finished_by: str | None = None,
+    closed_by: str | None = None,
     status: str | None = None,
+    pri: str | None = None,
     page: int = 1,
     limit: int = 100,
 ) -> dict[str, Any]:
-    """Paginated search list (assignedTo/status via API; openedBy client-side)."""
+    """Paginated search list (assignedTo/status via API; other fields client-side)."""
     from ..list_filter import filter_rows, slice_rows
 
     rows = fetch_search_tasks(
         list_resource, assigned_to=assigned_to, status=status
     )
-    if opened_by and opened_by.strip():
-        rows = filter_rows(rows, opened_by=opened_by.strip())
+    rows = filter_rows(
+        rows,
+        opened_by=(opened_by or "").strip() or None,
+        finished_by=(finished_by or "").strip() or None,
+        closed_by=(closed_by or "").strip() or None,
+        pri=(pri or "").strip() or None,
+    )
     chunk, total = slice_rows(rows, page=page, limit=limit)
     return {
         "page": max(1, int(page)),

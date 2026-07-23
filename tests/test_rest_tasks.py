@@ -38,7 +38,7 @@ def test_fetch_my_tasks_sends_page_as_size_and_filters() -> None:
     assert rows[0]["assignedTo"] == "me"
     assert len(calls) == 1
     assert calls[0] is not None
-    assert calls[0]["page"] == "200"
+    assert calls[0]["page"] == "500"
     assert calls[0]["type"] == "assignedTo"
 
 

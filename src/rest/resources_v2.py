@@ -103,7 +103,7 @@ _add(
             "execution": "/executions/{id}/stories",
         },
         require_scope=True,
-        user_filters=("assignedTo", "openedBy"),
+        user_filters=("assignedTo", "openedBy", "closedBy"),
     )
 )
 _add(
@@ -122,7 +122,7 @@ _add(
             "execution": "/executions/{id}/bugs",
         },
         require_scope=True,
-        user_filters=("assignedTo", "openedBy"),
+        user_filters=("assignedTo", "openedBy", "resolvedBy", "closedBy"),
     )
 )
 _add(

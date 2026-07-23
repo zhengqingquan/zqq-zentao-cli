@@ -218,24 +218,52 @@ class RestClient:
         limit: int = 100,
         assigned_to: str | None = None,
         opened_by: str | None = None,
+        finished_by: str | None = None,
+        closed_by: str | None = None,
         status: str | None = None,
+        pri: str | None = None,
     ) -> dict[str, Any]:
         """Task list: my-tasks by default, or search/filter by account/status."""
         at = (assigned_to or "").strip() or None
         ob = (opened_by or "").strip() or None
+        fb = (finished_by or "").strip() or None
+        cb = (closed_by or "").strip() or None
         st = (status or "").strip() or None
+        pr = (pri or "").strip() or None
         if ob and not at:
             raise SystemExit(
                 "tasks --openedBy without --execution requires --assignedTo "
                 "(ZenTao GET /tasks?search=1 has no openedBy). "
                 "Use: tasks -e <id> --openedBy <account>"
             )
-        if at:
+        if at or fb or cb or pr:
+            # search path when filtering by assignee or extra client fields
+            if not at and (fb or cb or pr):
+                # Need a base list: use my-tasks then client filter
+                out = tasks_api.list_my_tasks(
+                    self.list_resource, page=1, limit=100000, status=st
+                )
+                from ..list_filter import apply_user_filters
+
+                filtered = apply_user_filters(
+                    out,
+                    "tasks",
+                    finished_by=fb,
+                    closed_by=cb,
+                    pri=pr,
+                    page=page,
+                    limit=limit,
+                )
+                filtered["backend"] = self.backend
+                return filtered
             out = tasks_api.search_tasks(
                 self.list_resource,
                 assigned_to=at,
                 opened_by=ob,
+                finished_by=fb,
+                closed_by=cb,
                 status=st,
+                pri=pr,
                 page=page,
                 limit=limit,
             )

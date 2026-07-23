@@ -4,10 +4,37 @@
 
 from __future__ import annotations
 
+import time
 from collections.abc import Callable
 from typing import Any
 
 ListUsersFn = Callable[..., dict[str, Any]]
+
+# (server, account) → (monotonic_ts, rows)
+_USER_CACHE: dict[tuple[str, str], tuple[float, list[dict[str, Any]]]] = {}
+_USER_CACHE_TTL_SEC = 60.0
+
+
+def clear_user_cache() -> None:
+    """Drop all cached user tables (tests / forced refresh)."""
+    _USER_CACHE.clear()
+
+
+def _cache_key_for(list_users: ListUsersFn) -> tuple[str, str] | None:
+    owner = getattr(list_users, "__self__", None)
+    if owner is None:
+        return None
+    profile = getattr(owner, "profile", None)
+    if isinstance(profile, dict):
+        server = str(profile.get("server") or "").strip()
+        account = str(profile.get("account") or "").strip()
+        if server and account:
+            return server, account
+    server = str(getattr(owner, "server", "") or "").strip()
+    account = str(getattr(owner, "account", "") or "").strip()
+    if server and account:
+        return server, account
+    return None
 
 
 def _user_fields(row: dict[str, Any]) -> tuple[str, str, str]:
@@ -17,8 +44,21 @@ def _user_fields(row: dict[str, Any]) -> tuple[str, str, str]:
     return account, realname, pinyin
 
 
-def fetch_all_users(list_users: ListUsersFn, *, page_size: int = 200) -> list[dict[str, Any]]:
-    """Paginate GET /users until exhausted."""
+def fetch_all_users(
+    list_users: ListUsersFn,
+    *,
+    page_size: int = 200,
+    ttl: float = _USER_CACHE_TTL_SEC,
+) -> list[dict[str, Any]]:
+    """Paginate GET /users until exhausted (short TTL cache per server+account)."""
+    key = _cache_key_for(list_users)
+    if key is not None and ttl > 0:
+        hit = _USER_CACHE.get(key)
+        if hit is not None:
+            ts, rows = hit
+            if (time.monotonic() - ts) < ttl:
+                return list(rows)
+
     all_rows: list[dict[str, Any]] = []
     seen: set[str] = set()
     cur = 1
@@ -31,16 +71,19 @@ def fetch_all_users(list_users: ListUsersFn, *, page_size: int = 200) -> list[di
             break
         for row in rows:
             account, _, _ = _user_fields(row)
-            key = account or str(row.get("id") or id(row))
-            if key in seen:
+            ukey = account or str(row.get("id") or id(row))
+            if ukey in seen:
                 continue
-            seen.add(key)
+            seen.add(ukey)
             all_rows.append(row)
         if reported_total and len(all_rows) >= reported_total:
             break
         if len(rows) < page_size:
             break
         cur += 1
+
+    if key is not None and ttl > 0:
+        _USER_CACHE[key] = (time.monotonic(), list(all_rows))
     return all_rows
 
 

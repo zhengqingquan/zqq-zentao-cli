@@ -84,10 +84,10 @@ zqq-zentao comment list|add|edit …
 |------|------|------|
 | `--assignedTo <account\|实名>` | 指派给某人（实名唯一则解析为账号） | ✅ `tasks` / `bugs` / `stories` |
 | `--openedBy <account\|实名>` | 由某人创建 | ✅ `bugs` / `stories`；`tasks` 需配合 `-e` 或同时 `--assignedTo` |
-| `--finishedBy` / `--resolvedBy` / `--closedBy` | 完成/解决/关闭人 | ⏳ |
+| `--finishedBy` / `--resolvedBy` / `--closedBy` | 完成/解决/关闭人 | ✅ `tasks`（finishedBy/closedBy）；`bugs`（resolvedBy/closedBy）；`stories`（closedBy）；客户端过滤 |
 | `--status` | 状态（逗号分隔多值，如 `wait,doing`） | ✅ `tasks` / `bugs` / `stories` |
-| `--pri` / `--severity` | 优先级等 | ⏳ |
-| `--search` | 关键词 | ✅ `users`（账号/姓名/拼音）；✅ `projects`/`products`/`programs`（name/code 客户端；`--api v2` 时 projects 先试 filters） |
+| `--pri` / `--severity` | 优先级等 | ✅ `--pri`：`tasks` / `bugs` / `stories`（逗号多值）；`--severity` 仍 ⏳ |
+| `--search` | 关键词 | ✅ `users`；✅ `projects`/`products`/`programs`；✅ `executions`/`builds`/`releases`/`productplans`/`testcases`/`testsuites`/`testtasks`/`feedbacks`/`tickets`/`todos`（name/title/code 客户端） |
 | `--pick` | 摘取字段（全局，逗号分隔） | ✅ |
 
 说明：
@@ -127,16 +127,16 @@ zqq-zentao comment list|add|edit …
 | `my-tasks` | `assignedTo` | work: —；contribute: `openedBy` `finishedBy` `myInvolved` `closedBy` `canceledBy` `assignedBy` | ✅ `--type`/`--scope` | web/rest（仅默认 work+assignedTo 走 rest） |
 | `my-bugs` | `assignedTo` | contribute: `openedBy` `resolvedBy` `closedBy` `assignedBy` | ✅ | **web** |
 | `my-stories` | `assignedTo` | work: `reviewBy`；contribute: `openedBy` `reviewedBy` `closedBy` `assignedBy` | ✅ | web |
-| `my-requirements` | `assignedTo` | 同 story + `reviewBy` | ⏳ | web |
-| `my-epics` | `assignedTo` | 同 requirement | ⏳ | web |
+| `my-requirements` | `assignedTo` | 同 story + `reviewBy` | ✅ | web |
+| `my-epics` | `assignedTo` | 同 requirement | ✅ | web |
 | `my-todos` | `all` | `undone` `future` `today` `thisWeek` `thisMonth` | ✅ | web |
 | `my-testcases` | `assigntome` | contribute: `openedbyme` | ✅ | web |
 | `my-testtasks` | `assignedTo` | work: `wait`；contribute: `done` | ✅ | web |
 | `my-feedbacks` | `assigntome` | work: `assignedby`；contribute: `openedbyme` | ✅ | web |
 | `my-tickets` | `assignedtome` | contribute: `openedbyme` | ✅ | web |
-| `my-docs` | `openedbyme` | `editedbyme` | ⏳ | web |
-| `my-projects` | `doing` | 按 my::project | ⏳ | web |
-| `my-executions` | `undone` | 按 my::execution | ⏳ | web |
+| `my-docs` | `openedbyme` | `editedbyme` | ✅ | web |
+| `my-projects` | `doing` | `wait` `suspended` `delayed` `closed` `openedbyme` | ✅ | web |
+| `my-executions` | `undone` | `done` `delayed` | ✅ | web |
 | `my-issues` | `assignedTo` | （非 open 版可能有） | ⏳ 可选 | web |
 | `my-risks` | `assignedTo` | 可选 | ⏳ 可选 | web |
 | `my-meetings` | `futureMeeting` | 可选 | ⏳ 可选 | web |
@@ -264,8 +264,8 @@ zqq-zentao comment list|add|edit …
 - ✅ Web `my-*` 注册表化（`web/my_pages.py`）
 - ✅ 分页：Web 大 `recPerPage` / 翻页拉全（my-*、execution tasks）
 - ✅ bugs/stories 本人/状态 → REST browseType（查他人仍客户端）
-- 次要 `my-*`（requirements/epics/docs/…）与用户表短缓存：见 [handoff.md](./handoff.md)
-- 双通道失败降级（可选）
+- 次要 `my-*`（requirements/epics/docs/projects/executions）与用户表短缓存、通用过滤、auto 降级：✅ 见 [handoff.md](./handoff.md) 修订
+- 双通道失败降级（auto + 双能力）：✅ `factory._FallbackClient`
 
 ---
 
@@ -275,9 +275,10 @@ zqq-zentao comment list|add|edit …
 |------|------|
 | 会话 / 只读浏览 registry | 大部分 ✅ |
 | `my-tasks` / `my-bugs` + `--type`/`--scope` | ✅ |
-| 其它 `my-*`（stories/todos/test…） | ✅（epic/requirement/docs 等仍 ⏳） |
+| 其它 `my-*`（stories/todos/test…） | ✅（含 requirements/epics/docs/projects/executions；issues/risks/meetings 仍 ⏳ 可选） |
 | CRUD / 状态动作 | bug/task/story ✅ REST；P2 模块 ⏳；`comment` 写 ✅ |
 | 文档宣称「做 CRUD」 | ✅ README / 本文已同步（P2 模块仍 ⏳） |
+| P3 体验 | ✅ 次要 my-*、用户短缓存、过滤/`--search`、auto 降级、my-tasks 分页 bump |
 
 ---
 

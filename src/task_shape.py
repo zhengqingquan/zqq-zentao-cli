@@ -30,6 +30,8 @@ def summarize_task(row: dict[str, Any]) -> dict[str, Any]:
     """Map a raw task dict (REST JSON or web dtable) to the CLI table/JSON shape."""
     assigned = row.get("assignedTo")
     opened = row.get("openedBy")
+    finished = row.get("finishedBy")
+    closed = row.get("closedBy")
     return {
         "id": row.get("id"),
         "name": row.get("name"),
@@ -52,6 +54,8 @@ def summarize_task(row: dict[str, Any]) -> dict[str, Any]:
         "left": row.get("left"),
         "estimate": row.get("estimate"),
         "openedBy": user_field(opened) if isinstance(opened, dict) else opened,
+        "finishedBy": user_field(finished) if isinstance(finished, dict) else finished,
+        "closedBy": user_field(closed) if isinstance(closed, dict) else closed,
         "openedDate": row.get("openedDate"),
         "desc": row.get("desc"),
     }

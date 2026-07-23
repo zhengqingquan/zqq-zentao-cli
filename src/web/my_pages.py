@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Registry for ZenTao 22.3 my-work / my-contribute / my-todo Web pages."""
+"""Registry for ZenTao 22.3 my-work / my-contribute / my-todo / my-browse Web pages."""
 
 from __future__ import annotations
 
@@ -10,7 +10,10 @@ from typing import Any, Literal
 
 from ..bug_shape import summarize_bug
 from ..my_shape import (
+    summarize_doc,
+    summarize_execution,
     summarize_feedback,
+    summarize_project,
     summarize_story,
     summarize_testcase,
     summarize_testtask,
@@ -21,7 +24,7 @@ from ..task_shape import summarize_task
 from .lists import fetch_dtable_list_paginated
 from .session import Session
 
-ScopeName = Literal["work", "contribute", "todo"]
+ScopeName = Literal["work", "contribute", "todo", "browse"]
 SummarizeFn = Callable[[dict[str, Any]], dict[str, Any]]
 
 
@@ -32,13 +35,15 @@ class MyPage:
     cmd: str
     help: str
     mode: str
-    """PATHINFO mode segment (task/bug/story/…) or unused for todo."""
+    """PATHINFO mode segment (task/bug/story/…) or browse method name."""
 
     default_scope: ScopeName
     default_type: str
     work_types: tuple[str, ...] = ()
     contribute_types: tuple[str, ...] = ()
     todo_types: tuple[str, ...] = ()
+    browse_types: tuple[str, ...] = ()
+    """Standalone my::{project|execution} browseType values (no work/contribute)."""
     table_fields: tuple[str, ...] = ()
     summarize: SummarizeFn = summarize_task
     """REST only for default work+assignedTo my-tasks."""
@@ -93,6 +98,32 @@ _add(
         cmd="my-stories",
         help="My stories (work/contribute; web only)",
         mode="story",
+        default_scope="work",
+        default_type="assignedTo",
+        work_types=("assignedTo", "reviewBy"),
+        contribute_types=("openedBy", "reviewedBy", "closedBy", "assignedBy"),
+        table_fields=("id", "status", "pri", "stage", "title"),
+        summarize=summarize_story,
+    )
+)
+_add(
+    MyPage(
+        cmd="my-requirements",
+        help="My requirements / UR (work/contribute; web only)",
+        mode="requirement",
+        default_scope="work",
+        default_type="assignedTo",
+        work_types=("assignedTo", "reviewBy"),
+        contribute_types=("openedBy", "reviewedBy", "closedBy", "assignedBy"),
+        table_fields=("id", "status", "pri", "stage", "title"),
+        summarize=summarize_story,
+    )
+)
+_add(
+    MyPage(
+        cmd="my-epics",
+        help="My epics / ER (work/contribute; web only)",
+        mode="epic",
         default_scope="work",
         default_type="assignedTo",
         work_types=("assignedTo", "reviewBy"),
@@ -165,6 +196,42 @@ _add(
         summarize=summarize_ticket,
     )
 )
+_add(
+    MyPage(
+        cmd="my-docs",
+        help="My docs (contribute; web only)",
+        mode="doc",
+        default_scope="contribute",
+        default_type="openedbyme",
+        contribute_types=("openedbyme", "editedbyme"),
+        table_fields=("id", "title", "objectName", "addedBy", "editedBy"),
+        summarize=summarize_doc,
+    )
+)
+_add(
+    MyPage(
+        cmd="my-projects",
+        help="My projects (web; /my-project-*.html)",
+        mode="project",
+        default_scope="browse",
+        default_type="doing",
+        browse_types=("doing", "wait", "suspended", "delayed", "closed", "openedbyme"),
+        table_fields=("id", "name", "code", "status", "PM", "end"),
+        summarize=summarize_project,
+    )
+)
+_add(
+    MyPage(
+        cmd="my-executions",
+        help="My executions (web; /my-execution-*.html)",
+        mode="execution",
+        default_scope="browse",
+        default_type="undone",
+        browse_types=("undone", "done", "delayed"),
+        table_fields=("id", "name", "status", "project", "end"),
+        summarize=summarize_execution,
+    )
+)
 
 
 def my_page_by_cmd(cmd: str) -> MyPage | None:
@@ -191,8 +258,8 @@ def resolve_browse(
     raw_type = (browse_type or "").strip() or None
     raw_scope = (scope or "").strip().lower() or None
 
-    if raw_scope and raw_scope not in ("work", "contribute", "todo"):
-        raise SystemExit(f"Invalid --scope={scope!r}; expected work|contribute|todo")
+    if raw_scope and raw_scope not in ("work", "contribute", "todo", "browse"):
+        raise SystemExit(f"Invalid --scope={scope!r}; expected work|contribute|todo|browse")
 
     if page.default_scope == "todo":
         if raw_scope and raw_scope != "todo":
@@ -205,8 +272,21 @@ def resolve_browse(
             )
         return "todo", t
 
+    if page.default_scope == "browse":
+        if raw_scope and raw_scope not in ("browse",):
+            raise SystemExit(f"{page.cmd} does not use --scope {raw_scope}")
+        t = raw_type or page.default_type
+        if page.browse_types and t not in page.browse_types:
+            raise SystemExit(
+                f"Invalid --type={t!r} for {page.cmd}; "
+                f"expected one of: {', '.join(page.browse_types)}"
+            )
+        return "browse", t
+
     if raw_scope == "todo":
         raise SystemExit(f"{page.cmd} does not use --scope todo")
+    if raw_scope == "browse":
+        raise SystemExit(f"{page.cmd} does not use --scope browse")
 
     t = raw_type or page.default_type
     in_work = t in page.work_types
@@ -223,6 +303,8 @@ def resolve_browse(
                 f"Invalid --type={t!r} for {page.cmd} --scope contribute; "
                 f"expected: {', '.join(page.contribute_types)}"
             )
+        if raw_scope == "work" and not page.work_types:
+            raise SystemExit(f"{page.cmd} has no work types; use --scope contribute")
         return raw_scope, t  # type: ignore[return-value]
 
     if not raw_type:
@@ -260,6 +342,8 @@ def build_path(
       /my-{scope}-{mode}-{browseType}-{param}-{orderBy}-{recTotal}-{recPerPage}-{pageID}.html
     todo → my::todo:
       /my-todo-{browseType}-{userID}-{status}-{orderBy}-{recTotal}-{recPerPage}-{pageID}.html
+    browse → my::{project|execution}:
+      /my-{mode}-{browseType}-{orderBy}-{recTotal}-{recPerPage}-{pageID}.html
     """
     page_id = max(1, int(page_id))
     rec_per_page = max(1, int(rec_per_page))
@@ -267,6 +351,11 @@ def build_path(
         # userID empty; status=all
         return (
             f"/my-todo-{browse_type}--all-{order_by}-"
+            f"{rec_total}-{rec_per_page}-{page_id}.html?zin=1"
+        )
+    if scope == "browse":
+        return (
+            f"/my-{page.mode}-{browse_type}-{order_by}-"
             f"{rec_total}-{rec_per_page}-{page_id}.html?zin=1"
         )
     return (

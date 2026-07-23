@@ -19,7 +19,11 @@ _SCOPE_FLAGS = (
 )
 
 _QUERY_HELPS = {
-    "search": "Search by name/code (client-side; projects/products/programs; users by account/realname/pinyin)",
+    "search": (
+        "Keyword search (users: account/realname/pinyin; "
+        "projects/products/programs: name/code; "
+        "other lists: name/title/code client-side)"
+    ),
 }
 
 
@@ -46,6 +50,9 @@ def _add_user_filter_flags(
     helps = {
         "assignedTo": "Filter by assignee (account or realname)",
         "openedBy": "Filter by opener (account or realname)",
+        "finishedBy": "Filter by finisher (account or realname)",
+        "resolvedBy": "Filter by resolver (account or realname)",
+        "closedBy": "Filter by closer (account or realname)",
     }
     for name in filter_names:
         parser.add_argument(
@@ -61,10 +68,23 @@ def _add_status_flag(parser: argparse.ArgumentParser) -> None:
     )
 
 
+def _add_pri_flag(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--pri",
+        default=None,
+        help="Filter by priority (comma-separated, e.g. 1,2)",
+    )
+
+
 def _add_my_page_flags(parser: argparse.ArgumentParser, page_cmd: str) -> None:
     page = my_page_by_cmd(page_cmd)
     assert page is not None
-    types = (*page.work_types, *page.contribute_types, *page.todo_types)
+    types = (
+        *page.work_types,
+        *page.contribute_types,
+        *page.todo_types,
+        *page.browse_types,
+    )
     type_help = ", ".join(types) if types else page.default_type
     parser.add_argument(
         "--type",
@@ -72,7 +92,10 @@ def _add_my_page_flags(parser: argparse.ArgumentParser, page_cmd: str) -> None:
         dest="browse_type",
         help=f"Browse type (default {page.default_type}); one of: {type_help}",
     )
-    if page.default_scope != "todo":
+    if page.default_scope in ("todo", "browse"):
+        return
+    # --scope only when type can live in both work and contribute.
+    if page.work_types and page.contribute_types:
         parser.add_argument(
             "--scope",
             choices=("work", "contribute"),
@@ -137,6 +160,7 @@ def _register_resource_parsers(sub: argparse._SubParsersAction[Any]) -> None:
             if res.user_filters:
                 _add_user_filter_flags(p, res.user_filters)
                 _add_status_flag(p)
+                _add_pri_flag(p)
             for qname in res.query_params:
                 req = qname in res.required_query
                 p.add_argument(
@@ -248,8 +272,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Task list: REST /tasks, or --execution for one execution (web/rest)",
     )
     p_tasks.add_argument("--execution", "-e", help="Execution ID")
-    _add_user_filter_flags(p_tasks, ("assignedTo", "openedBy"))
+    _add_user_filter_flags(
+        p_tasks, ("assignedTo", "openedBy", "finishedBy", "closedBy")
+    )
     _add_status_flag(p_tasks)
+    _add_pri_flag(p_tasks)
     _add_page_limit(p_tasks, limit=100)
 
     p_task = sub.add_parser(

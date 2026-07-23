@@ -46,11 +46,16 @@ SPECIAL_CMDS = frozenset(
         "my-tasks",
         "my-bugs",
         "my-stories",
+        "my-requirements",
+        "my-epics",
         "my-todos",
         "my-testcases",
         "my-testtasks",
         "my-feedbacks",
         "my-tickets",
+        "my-docs",
+        "my-projects",
+        "my-executions",
         "tasks",  # dual-backend + table output; also covers registry key "tasks"
         "task",
         "bug",  # get + REST write/actions (overrides registry detail-only)
@@ -240,6 +245,7 @@ _add(
         list_key="executions",
         detail_keys=("execution",),
         scopes={"project": "/projects/{id}/executions"},
+        query_params=("search",),
     )
 )
 _add(
@@ -284,7 +290,7 @@ _add(
             "execution": "/executions/{id}/stories",
         },
         require_scope=True,
-        user_filters=("assignedTo", "openedBy"),
+        user_filters=("assignedTo", "openedBy", "closedBy"),
     )
 )
 _add(
@@ -313,7 +319,7 @@ _add(
             "execution": "/executions/{id}/bugs",
         },
         require_scope=True,
-        user_filters=("assignedTo", "openedBy"),
+        user_filters=("assignedTo", "openedBy", "resolvedBy", "closedBy"),
     )
 )
 
@@ -330,6 +336,7 @@ _add(
         detail_keys=("productplan", "plan"),
         scopes={"product": "/products/{id}/plans"},
         require_scope=True,
+        query_params=("search",),
     )
 )
 _add(
@@ -347,6 +354,7 @@ _add(
             "project": "/projects/{id}/releases",
         },
         require_scope=True,
+        query_params=("search",),
     )
 )
 _add(
@@ -364,6 +372,7 @@ _add(
             "execution": "/executions/{id}/builds",
         },
         require_scope=True,
+        query_params=("search",),
     )
 )
 
@@ -384,6 +393,7 @@ _add(
             "execution": "/executions/{id}/testcases",
         },
         require_scope=True,
+        query_params=("search",),
     )
 )
 _add(
@@ -398,6 +408,7 @@ _add(
         detail_keys=("testsuite", "suite"),
         scopes={"product": "/products/{id}/testsuites"},
         require_scope=True,
+        query_params=("search",),
     )
 )
 _add(
@@ -411,6 +422,7 @@ _add(
         list_key="testtasks",
         detail_keys=("testtask", "task"),
         scopes={"project": "/projects/{id}/testtasks"},
+        query_params=("search",),
     )
 )
 
@@ -425,6 +437,7 @@ _add(
         detail_path="/feedbacks/{id}",
         list_key="feedbacks",
         detail_keys=("feedback",),
+        query_params=("search",),
     )
 )
 _add(
@@ -437,6 +450,7 @@ _add(
         detail_path="/tickets/{id}",
         list_key="tickets",
         detail_keys=("ticket",),
+        query_params=("search",),
     )
 )
 _add(
@@ -449,6 +463,7 @@ _add(
         detail_path="/todos/{id}",
         list_key="todos",
         detail_keys=("todo",),
+        query_params=("search",),
     )
 )
 

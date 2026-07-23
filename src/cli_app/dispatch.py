@@ -30,28 +30,28 @@ from .write_dispatch import WRITE_NOUNS, dispatch_write
 
 def resolve_task_user_filters(
     client: Any, args: argparse.Namespace
-) -> tuple[str | None, str | None]:
-    """Resolve assignedTo/openedBy via REST list_users when available."""
-    assigned_to = getattr(args, "assignedTo", None)
-    opened_by = getattr(args, "openedBy", None)
-    if not assigned_to and not opened_by:
-        return None, None
+) -> dict[str, str | None]:
+    """Resolve user-ish task filters via REST list_users when available."""
+    keys = (
+        ("assignedTo", "assigned_to"),
+        ("openedBy", "opened_by"),
+        ("finishedBy", "finished_by"),
+        ("closedBy", "closed_by"),
+    )
+    raw: dict[str, str | None] = {}
+    for attr, out_key in keys:
+        val = getattr(args, attr, None)
+        raw[out_key] = str(val).strip() if val else None
+    if not any(raw.values()):
+        return raw
     list_users = getattr(client, "list_users", None)
     if list_users is None:
-        return (
-            (str(assigned_to).strip() or None) if assigned_to else None,
-            (str(opened_by).strip() or None) if opened_by else None,
-        )
+        return raw
     try:
-        at = resolve_optional(list_users, assigned_to)
-        ob = resolve_optional(list_users, opened_by)
-        return at, ob
+        return {k: resolve_optional(list_users, v) if v else None for k, v in raw.items()}
     except SystemExit:
         if getattr(client, "backend", None) == "web":
-            return (
-                (str(assigned_to).strip() or None) if assigned_to else None,
-                (str(opened_by).strip() or None) if opened_by else None,
-            )
+            return raw
         raise
 
 
@@ -69,9 +69,16 @@ def dispatch_registry(client: Any, args: argparse.Namespace) -> bool:
         filters = (
             resource_svc.user_filters_from_args(args, list_res)
             if list_res.user_filters
-            else {"assigned_to": None, "opened_by": None}
+            else {
+                "assigned_to": None,
+                "opened_by": None,
+                "finished_by": None,
+                "resolved_by": None,
+                "closed_by": None,
+            }
         )
         status = resource_svc.status_from_args(args) if list_res.user_filters else None
+        pri = resource_svc.pri_from_args(args) if list_res.user_filters else None
         page = getattr(args, "page", 1)
         limit = getattr(args, "limit", 50)
         emit(
@@ -85,7 +92,11 @@ def dispatch_registry(client: Any, args: argparse.Namespace) -> bool:
                 query=query,
                 assigned_to=filters.get("assigned_to"),
                 opened_by=filters.get("opened_by"),
+                finished_by=filters.get("finished_by"),
+                resolved_by=filters.get("resolved_by"),
+                closed_by=filters.get("closed_by"),
                 status=status,
+                pri=pri,
             ),
             is_list=True,
             fields=fields_for(args.cmd, args),
@@ -152,17 +163,21 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.cmd == "tasks":
-        assigned_to, opened_by = resolve_task_user_filters(client, args)
+        filters = resolve_task_user_filters(client, args)
         status = resource_svc.status_from_args(args)
+        pri = resource_svc.pri_from_args(args)
         fields = fields_for("tasks", args)
         if args.execution:
             emit(
                 task_svc.execution_tasks(
                     client,
                     args.execution,
-                    assigned_to=assigned_to,
-                    opened_by=opened_by,
+                    assigned_to=filters.get("assigned_to"),
+                    opened_by=filters.get("opened_by"),
+                    finished_by=filters.get("finished_by"),
+                    closed_by=filters.get("closed_by"),
                     status=status,
+                    pri=pri,
                 ),
                 is_list=True,
                 fields=fields,
@@ -173,9 +188,12 @@ def main(argv: list[str] | None = None) -> int:
                     client,
                     page=args.page,
                     limit=args.limit,
-                    assigned_to=assigned_to,
-                    opened_by=opened_by,
+                    assigned_to=filters.get("assigned_to"),
+                    opened_by=filters.get("opened_by"),
+                    finished_by=filters.get("finished_by"),
+                    closed_by=filters.get("closed_by"),
                     status=status,
+                    pri=pri,
                 ),
                 is_list=True,
                 fields=fields,

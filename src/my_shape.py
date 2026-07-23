@@ -108,3 +108,51 @@ def summarize_ticket(row: dict[str, Any]) -> dict[str, Any]:
         ),
         "productName": row.get("productName") or row.get("product"),
     }
+
+
+def summarize_doc(row: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "id": row.get("id"),
+        "title": row.get("title") or row.get("name"),
+        "objectName": row.get("objectName") or row.get("object"),
+        "addedBy": (
+            user_field(row["addedBy"])
+            if isinstance(row.get("addedBy"), dict)
+            else row.get("addedBy")
+        ),
+        "editedBy": (
+            user_field(row["editedBy"])
+            if isinstance(row.get("editedBy"), dict)
+            else row.get("editedBy")
+        ),
+        "addedDate": row.get("addedDate"),
+        "editedDate": row.get("editedDate"),
+    }
+
+
+def summarize_project(row: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "id": row.get("id"),
+        "name": row.get("name") or row.get("title"),
+        "code": row.get("code"),
+        "status": _status(row),
+        "PM": (
+            user_field(row["PM"]) if isinstance(row.get("PM"), dict) else row.get("PM")
+        ),
+        "begin": row.get("begin"),
+        "end": row.get("end"),
+    }
+
+
+def summarize_execution(row: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "id": row.get("id"),
+        "name": row.get("name") or row.get("title"),
+        "status": _status(row),
+        "project": row.get("project") or row.get("projectName"),
+        "begin": row.get("begin"),
+        "end": row.get("end"),
+        "PM": (
+            user_field(row["PM"]) if isinstance(row.get("PM"), dict) else row.get("PM")
+        ),
+    }
