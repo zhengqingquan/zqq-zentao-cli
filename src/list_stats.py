@@ -88,18 +88,63 @@ def as_count_only(
     if total is None:
         rows = payload.get(list_key) or []
         total = len(rows) if isinstance(rows, list) else 0
-    clean_filters = {
-        k: v
-        for k, v in (filters or {}).items()
-        if v is not None and str(v).strip() != ""
-    }
+    # Prefer server-built echo (resolved accounts) when present.
+    echo = payload.get("resolvedFilters")
+    if isinstance(echo, dict) and echo:
+        clean_filters = dict(echo)
+    else:
+        clean_filters = {
+            k: v
+            for k, v in (filters or {}).items()
+            if v is not None and str(v).strip() != ""
+        }
     out: dict[str, Any] = {
         "kind": kind,
         "mode": "count-only",
         "total": int(total),
         "filters": clean_filters,
     }
-    for meta in ("backend", "api", "searchMode"):
+    for meta in ("backend", "api", "searchMode", "browseType"):
         if meta in payload:
             out[meta] = payload[meta]
+    return out
+
+
+_USER_FILTER_KEYS = (
+    "assignedTo",
+    "openedBy",
+    "finishedBy",
+    "resolvedBy",
+    "closedBy",
+)
+
+
+def build_filters_echo(
+    *,
+    scopes: dict[str, Any] | None = None,
+    status: str | None = None,
+    pri: str | None = None,
+    user_inputs: dict[str, str | None] | None = None,
+    user_resolved: dict[str, str | None] | None = None,
+) -> dict[str, Any]:
+    """Filters for stats output: resolved account + ``*Input`` when raw differs."""
+    out: dict[str, Any] = {}
+    for k, v in (scopes or {}).items():
+        if v is not None and str(v).strip() != "":
+            out[k] = v
+    if status is not None and str(status).strip() != "":
+        out["status"] = status
+    if pri is not None and str(pri).strip() != "":
+        out["pri"] = pri
+    inputs = user_inputs or {}
+    resolved = user_resolved or {}
+    for key in _USER_FILTER_KEYS:
+        raw = (inputs.get(key) or "").strip() or None
+        acc = (resolved.get(key) or "").strip() or None
+        if acc:
+            out[key] = acc
+            if raw and raw != acc:
+                out[f"{key}Input"] = raw
+        elif raw:
+            out[key] = raw
     return out

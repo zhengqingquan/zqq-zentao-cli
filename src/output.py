@@ -49,6 +49,38 @@ class OutputOptions:
 
 
 _opts: OutputOptions = OutputOptions()
+_UTF8_STDIO_READY = False
+
+
+def ensure_utf8_stdio() -> None:
+    """Prefer UTF-8 on stdout/stderr so Chinese titles/names survive Windows consoles.
+
+    - reconfigure text wrappers to utf-8 (Python 3.7+)
+    - on win32, set console input/output code page to 65001 when possible
+    Safe to call multiple times; best-effort, never raises.
+    """
+    global _UTF8_STDIO_READY
+    if _UTF8_STDIO_READY:
+        return
+    _UTF8_STDIO_READY = True
+
+    if sys.platform == "win32":
+        try:
+            import ctypes
+
+            ctypes.windll.kernel32.SetConsoleOutputCP(65001)
+            ctypes.windll.kernel32.SetConsoleCP(65001)
+        except Exception:
+            pass
+
+    for stream in (sys.stdout, sys.stderr):
+        reconf = getattr(stream, "reconfigure", None)
+        if not callable(reconf):
+            continue
+        try:
+            reconf(encoding="utf-8", errors="replace")
+        except Exception:
+            continue
 
 
 def configure_output(
@@ -59,6 +91,7 @@ def configure_output(
 ) -> OutputOptions:
     """Apply global CLI output options (call once from main)."""
     global _opts
+    ensure_utf8_stdio()
     fmt: FormatName = "markdown"
     if format:
         f = format.strip().lower()
@@ -81,12 +114,23 @@ def get_output_options() -> OutputOptions:
 
 
 def _print_text(text: str) -> None:
+    """Write text to stdout; prefer UTF-8 bytes so pipes/agents keep 中文."""
+    payload = text if text.endswith("\n") else text + "\n"
+    buf = getattr(sys.stdout, "buffer", None)
+    if buf is not None:
+        try:
+            buf.write(payload.encode("utf-8", errors="replace"))
+            buf.flush()
+            return
+        except Exception:
+            pass
     try:
         print(text)
     except UnicodeEncodeError:
         enc = getattr(sys.stdout, "encoding", None) or "utf-8"
-        sys.stdout.buffer.write((text + "\n").encode(enc, errors="replace"))
-        sys.stdout.buffer.flush()
+        if buf is not None:
+            buf.write((text + "\n").encode(enc, errors="replace"))
+            buf.flush()
 
 
 def _cell(value: Any) -> str:

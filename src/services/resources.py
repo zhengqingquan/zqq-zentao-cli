@@ -7,6 +7,7 @@ import sys
 from typing import Any
 
 from ..list_filter import apply_user_filters, filter_rows_by_search, slice_rows
+from ..list_stats import build_filters_echo
 from ..protocol import ZenTaoClient
 from ..rest.browse_filter import plan_bugs_stories_filter
 from ..rest.client import RestClient
@@ -113,21 +114,48 @@ def list_by_cmd(
     cb = resolve_optional(rest.list_users, closed_by) if closed_by else None
     st = (status or "").strip() or None
     pr = (pri or "").strip() or None
+    filter_echo = build_filters_echo(
+        scopes=scopes,
+        status=st,
+        pri=pr,
+        user_inputs={
+            "assignedTo": assigned_to,
+            "openedBy": opened_by,
+            "finishedBy": finished_by,
+            "resolvedBy": resolved_by,
+            "closedBy": closed_by,
+        },
+        user_resolved={
+            "assignedTo": at,
+            "openedBy": ob,
+            "finishedBy": fb,
+            "resolvedBy": rb,
+            "closedBy": cb,
+        },
+    )
+
+    def _with_echo(payload: dict[str, Any]) -> dict[str, Any]:
+        if filter_echo:
+            payload = dict(payload)
+            payload["resolvedFilters"] = filter_echo
+        return payload
 
     extra = bool(fb or rb or cb or pr)
     if (at or ob or st or extra) and res.list_key and res.paginated:
         if res.key in ("bugs", "stories") and not extra:
-            return _list_bugs_stories_filtered(
-                rest,
-                res,
-                page=page,
-                limit=limit,
-                scopes=scopes,
-                path_param=path_param,
-                query=q or None,
-                assigned_to=at,
-                opened_by=ob,
-                status=st,
+            return _with_echo(
+                _list_bugs_stories_filtered(
+                    rest,
+                    res,
+                    page=page,
+                    limit=limit,
+                    scopes=scopes,
+                    path_param=path_param,
+                    query=q or None,
+                    assigned_to=at,
+                    opened_by=ob,
+                    status=st,
+                )
             )
         if res.key in ("bugs", "stories") and extra:
             # Prefer browseType for self assigned/opened/status, then apply extra client filters.
@@ -143,31 +171,35 @@ def list_by_cmd(
                 opened_by=ob,
                 status=st,
             )
-            return apply_user_filters(
-                base,
-                res.list_key,
+            return _with_echo(
+                apply_user_filters(
+                    base,
+                    res.list_key,
+                    finished_by=fb,
+                    resolved_by=rb,
+                    closed_by=cb,
+                    pri=pr,
+                    page=page,
+                    limit=limit,
+                )
+            )
+        return _with_echo(
+            _list_all_then_filter(
+                rest,
+                res,
+                page=page,
+                limit=limit,
+                scopes=scopes,
+                path_param=path_param,
+                query=q or None,
+                assigned_to=at,
+                opened_by=ob,
                 finished_by=fb,
                 resolved_by=rb,
                 closed_by=cb,
+                status=st,
                 pri=pr,
-                page=page,
-                limit=limit,
             )
-        return _list_all_then_filter(
-            rest,
-            res,
-            page=page,
-            limit=limit,
-            scopes=scopes,
-            path_param=path_param,
-            query=q or None,
-            assigned_to=at,
-            opened_by=ob,
-            finished_by=fb,
-            resolved_by=rb,
-            closed_by=cb,
-            status=st,
-            pri=pr,
         )
     out = rest.list_resource(
         res.key,
@@ -179,6 +211,8 @@ def list_by_cmd(
     )
     if isinstance(out, dict):
         out.setdefault("api", rest.api_version)
+        if filter_echo:
+            out["resolvedFilters"] = filter_echo
     return out
 
 

@@ -7,7 +7,7 @@ import sys
 from typing import Any
 
 from ..list_filter import apply_user_filters
-from ..list_stats import as_count_only, parse_facets, summarize_rows
+from ..list_stats import as_count_only, build_filters_echo, parse_facets, summarize_rows
 from ..protocol import ZenTaoClient
 from ..rest.browse_filter import plan_bugs_stories_filter
 from ..rest.client import RestClient
@@ -20,10 +20,6 @@ def _as_rest(client: ZenTaoClient) -> RestClient:
     if not isinstance(client, RestClient):
         raise SystemExit("summary / --count-only requires --backend rest")
     return client
-
-
-def _clean_filters(**kwargs: Any) -> dict[str, Any]:
-    return {k: v for k, v in kwargs.items() if v is not None and str(v).strip() != ""}
 
 
 def count_only_from_list(
@@ -44,10 +40,9 @@ def _paginate_scoped(
     scopes: dict[str, str | int | None] | None,
     path_param: str | None,
     query: dict[str, str] | None,
-) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+) -> list[dict[str, Any]]:
     all_rows: list[dict[str, Any]] = []
     seen: set[Any] = set()
-    meta: dict[str, Any] = {"backend": rest.backend, "api": rest.api_version}
     cur = 1
     page_size = 200
     reported_total = 0
@@ -76,7 +71,7 @@ def _paginate_scoped(
         if len(rows) < page_size:
             break
         cur += 1
-    return all_rows, meta
+    return all_rows
 
 
 def _fetch_bugs_or_stories_rows(
@@ -90,7 +85,7 @@ def _fetch_bugs_or_stories_rows(
     closed_by: str | None,
     status: str | None,
     pri: str | None,
-) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+) -> tuple[list[dict[str, Any]], dict[str, Any], dict[str, Any]]:
     res = resource_by_list_cmd(kind)
     if res is None or not res.list_key:
         raise SystemExit(f"Unknown list kind: {kind}")
@@ -101,6 +96,23 @@ def _fetch_bugs_or_stories_rows(
     cb = resolve_optional(rest.list_users, closed_by) if closed_by else None
     st = (status or "").strip() or None
     pr = (pri or "").strip() or None
+    echo = build_filters_echo(
+        scopes=scopes,
+        status=st,
+        pri=pr,
+        user_inputs={
+            "assignedTo": assigned_to,
+            "openedBy": opened_by,
+            "resolvedBy": resolved_by,
+            "closedBy": closed_by,
+        },
+        user_resolved={
+            "assignedTo": at,
+            "openedBy": ob,
+            "resolvedBy": rb,
+            "closedBy": cb,
+        },
+    )
 
     plan = plan_bugs_stories_filter(
         "bugs" if kind == "bugs" else "stories",
@@ -116,7 +128,7 @@ def _fetch_bugs_or_stories_rows(
     if plan.server_status:
         query = {"status": plan.server_status}
 
-    rows, meta = _paginate_scoped(
+    rows = _paginate_scoped(
         rest,
         key=res.key,
         list_key=res.list_key,
@@ -125,7 +137,7 @@ def _fetch_bugs_or_stories_rows(
         query=query,
     )
     payload = apply_user_filters(
-        {res.list_key: rows, **meta},
+        {res.list_key: rows},
         res.list_key,
         assigned_to=plan.client_assigned_to,
         opened_by=plan.client_opened_by,
@@ -135,7 +147,13 @@ def _fetch_bugs_or_stories_rows(
         pri=pr,
     )
     filtered = [r for r in (payload.get(res.list_key) or []) if isinstance(r, dict)]
-    return filtered, meta
+    meta: dict[str, Any] = {
+        "backend": rest.backend,
+        "api": rest.api_version,
+    }
+    if plan.server_status:
+        meta["browseType"] = plan.server_status
+    return filtered, meta, echo
 
 
 def summarize_bugs_or_stories(
@@ -163,7 +181,7 @@ def summarize_bugs_or_stories(
         need = " / ".join(f"--{n}" for n in (res.scopes or {}))
         raise SystemExit(f"{kind} summary requires scope: {need}")
 
-    rows, meta = _fetch_bugs_or_stories_rows(
+    rows, meta, echo = _fetch_bugs_or_stories_rows(
         rest,
         kind,
         scopes=scopes,
@@ -179,15 +197,7 @@ def summarize_bugs_or_stories(
     return {
         "kind": kind,
         "mode": "summary",
-        "filters": _clean_filters(
-            **(scopes or {}),
-            assignedTo=assigned_to,
-            openedBy=opened_by,
-            resolvedBy=resolved_by,
-            closedBy=closed_by,
-            status=status,
-            pri=pri,
-        ),
+        "filters": echo,
         "facet": list(facets),
         **body,
         **meta,
@@ -250,18 +260,27 @@ def summarize_tasks(
         }
 
     body = summarize_rows(rows, facets=facets)
+    echo = build_filters_echo(
+        scopes={"execution": execution} if execution else None,
+        status=status,
+        pri=pri,
+        user_inputs={
+            "assignedTo": assigned_to,
+            "openedBy": opened_by,
+            "finishedBy": finished_by,
+            "closedBy": closed_by,
+        },
+        user_resolved={
+            "assignedTo": assigned_to,
+            "openedBy": opened_by,
+            "finishedBy": finished_by,
+            "closedBy": closed_by,
+        },
+    )
     out: dict[str, Any] = {
         "kind": "tasks",
         "mode": "summary",
-        "filters": _clean_filters(
-            execution=execution,
-            assignedTo=assigned_to,
-            openedBy=opened_by,
-            finishedBy=finished_by,
-            closedBy=closed_by,
-            status=status,
-            pri=pri,
-        ),
+        "filters": echo,
         "facet": list(facets),
         **body,
         **meta,

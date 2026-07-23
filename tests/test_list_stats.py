@@ -7,6 +7,7 @@ import pytest
 
 from zqq_zentao_cli.list_stats import (
     as_count_only,
+    build_filters_echo,
     count_by_facet,
     parse_facets,
     summarize_rows,
@@ -72,3 +73,38 @@ def test_as_count_only_strips_rows() -> None:
         "api": "v1",
     }
     assert "bugs" not in out
+
+
+def test_as_count_only_prefers_resolved_filters() -> None:
+    payload = {
+        "bugs": [],
+        "total": 2,
+        "resolvedFilters": {
+            "project": "3337",
+            "assignedTo": "yjiansen",
+            "assignedToInput": "建森",
+        },
+    }
+    out = as_count_only(
+        payload,
+        kind="bugs",
+        list_key="bugs",
+        filters={"assignedTo": "建森"},
+    )
+    assert out["filters"]["assignedTo"] == "yjiansen"
+    assert out["filters"]["assignedToInput"] == "建森"
+
+
+def test_build_filters_echo_resolved_account() -> None:
+    echo = build_filters_echo(
+        scopes={"project": "3337"},
+        status="active",
+        user_inputs={"assignedTo": "建森"},
+        user_resolved={"assignedTo": "yjiansen"},
+    )
+    assert echo == {
+        "project": "3337",
+        "status": "active",
+        "assignedTo": "yjiansen",
+        "assignedToInput": "建森",
+    }

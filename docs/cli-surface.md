@@ -98,6 +98,7 @@ zqq-zentao comment list|add|edit …
 - `bugs` / `stories`：优先走 REST `status=`（browseType）。`--assignedTo`/`--openedBy` 为**当前用户**时用 `assigntome`/`openedbyme`（stories 为 `assignedtome`）；`--status active` 等映射为 `unresolved`/`activestory` 等。查**他人**名下仍拉全量后客户端过滤（慢），stderr 会提示；查自己优先 `my-bugs` / `my-stories`
 - Bug 行状态 vs browseType：`--status active`→`unresolved`（未解决）；`--status resolved`→`toclosed`（**待关闭**，不是全部已解决）；`--status closed` 无专用 browseType，会拉 `all` 再客户端滤
 - 统计：`bugs --project 12 --status active --count-only`；分面 `summary bugs --project 12` 或 `summary bugs --project 12 --status active --facet pri`
+- `--count-only` / `summary` 的 `filters`：用户类条件回显**解析后账号**；若输入为实名则另给 `assignedToInput` 等
 - `tasks --openedBy` 单独使用时请加 `-e <executionId>`（全局 search 无 openedBy 字段）
 - 鉴权日志（`auth: rest-token(...)` 等）打在 **stderr**，勿与 stdout JSON 混用
 - REST 版本：`--api v1|v2` / `ZENTAO_API`（默认 v1）；**写操作始终 v1**；v2 为并行只读（见 channel-matrix）

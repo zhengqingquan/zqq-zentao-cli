@@ -61,6 +61,7 @@
 | **低** | `auto` 双通道失败降级 | ✅ |
 | **低** | REST my-tasks：首拉 500 + total bump | ✅（离线；真机可再确认） |
 | **中** | 统计面：`--count-only` + `summary bugs\|tasks\|stories --facet` | ✅（离线；真机可再确认） |
+| **中** | 统计优化：filters 回显解析账号 | ✅ |
 
 可选仍 ⏳：`my-issues` / `my-risks` / `my-meetings`；`--severity`。
 
@@ -86,7 +87,8 @@
 | Web 默认每页 20 | **已修** `recPerPage=200` + 翻页；勿改回短 PATHINFO |
 | APIv1 my-tasks 分页错位 | `rest/tasks.py` 绕过（首拉 500 + bump），勿轻易改 |
 | APIv2 projects 分页不可靠 | 实机易重复/忽略；`projects --search` 勿依赖 v2 翻页拉全 |
-| Windows 管道中文乱码 | `PYTHONIOENCODING=utf-8`；解析 JSON 勿依赖控制台编码 |
+| Windows 控制台中文 | 启动时 `ensure_utf8_stdio`（CP65001 + stdout/stderr utf-8）；管道也写 UTF-8。外层仍乱码时设 `PYTHONIOENCODING=utf-8` / 终端用 UTF-8 |
+| Windows 管道中文乱码 | 同上；解析 JSON 勿依赖控制台编码 |
 | 所有 REST 写仅离线测 | 见 **P1**；隔离环境 + `--yes`；**暂缓真机** |
 | todo finish/activate | 源码为 **GET**；CLI `--comment` 等 body 无效 |
 | testsuite/testtask 无 update | APIv1 无 PUT entry；勿臆造 |
@@ -114,8 +116,8 @@ PATHINFO：[zentao-web-pathinfo.md](./zentao-web-pathinfo.md)。
 | `src/config.py` | 全局配置（含 `ZENTAO_API`） |
 | `src/user_resolve.py` | 姓名/账号解析、短缓存 |
 | `src/list_filter.py` | 客户端用户/状态/pri/关键词过滤 |
-| `src/list_stats.py` | `--count-only` / `summary` 分面聚合 |
-| `src/services/summary.py` | bugs/stories/tasks 统计拉取 |
+| `src/list_stats.py` | `--count-only` / `summary` 分面聚合；filters 回显 |
+| `src/services/summary.py` | bugs/stories/tasks 统计 |
 | `src/rest/resources.py` | REST **v1** 只读注册表（`SPECIAL_CMDS` 含写名词） |
 | `src/rest/resources_v2.py` / `v2_search.py` | REST **v2** 只读 |
 | `src/rest/tasks.py` | my-tasks / search / execution 任务 |

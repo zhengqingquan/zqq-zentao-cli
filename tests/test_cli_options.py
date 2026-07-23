@@ -113,6 +113,22 @@ def test_render_json_wrapper() -> None:
     assert payload == {"status": "success", "data": {"id": 1}}
 
 
+def test_render_json_keeps_chinese() -> None:
+    configure_output(format="json", machine_readable=True)
+    text = render({"realname": "张三", "title": "标题"}, is_list=False)
+    payload = json.loads(text)
+    assert payload["data"]["realname"] == "张三"
+    assert payload["data"]["title"] == "标题"
+    assert "张三" in text
+
+
+def test_ensure_utf8_stdio_idempotent() -> None:
+    from zqq_zentao_cli.output import ensure_utf8_stdio
+
+    ensure_utf8_stdio()
+    ensure_utf8_stdio()  # no raise
+
+
 def test_render_raw() -> None:
     configure_output(format="raw", machine_readable=True)
     text = render({"id": 1}, is_list=False)

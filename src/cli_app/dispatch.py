@@ -8,12 +8,13 @@ from typing import Any
 
 from ..config import set_config_path
 from ..factory import create_client
-from ..output import configure_output, emit
+from ..output import configure_output, emit, ensure_utf8_stdio
 from ..rest.resources import (
     SPECIAL_CMDS,
     resource_by_detail_cmd,
     resource_by_list_cmd,
 )
+from ..list_stats import build_filters_echo
 from ..services import auth as auth_svc
 from ..services import comments as comment_svc
 from ..services import my_pages as my_page_svc
@@ -75,6 +76,30 @@ def _scope_filter_meta(args: argparse.Namespace) -> dict[str, Any]:
         if val is not None and str(val).strip() != "":
             meta[key] = val
     return meta
+
+
+def _task_filters_echo(
+    args: argparse.Namespace, resolved: dict[str, str | None]
+) -> dict[str, Any]:
+    return build_filters_echo(
+        scopes={
+            "execution": getattr(args, "execution", None),
+        },
+        status=resource_svc.status_from_args(args),
+        pri=resource_svc.pri_from_args(args),
+        user_inputs={
+            "assignedTo": getattr(args, "assignedTo", None),
+            "openedBy": getattr(args, "openedBy", None),
+            "finishedBy": getattr(args, "finishedBy", None),
+            "closedBy": getattr(args, "closedBy", None),
+        },
+        user_resolved={
+            "assignedTo": resolved.get("assigned_to"),
+            "openedBy": resolved.get("opened_by"),
+            "finishedBy": resolved.get("finished_by"),
+            "closedBy": resolved.get("closed_by"),
+        },
+    )
 
 
 def dispatch_registry(client: Any, args: argparse.Namespace) -> bool:
@@ -189,6 +214,7 @@ def _dispatch_summary(client: Any, args: argparse.Namespace) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
+    ensure_utf8_stdio()
     parser = build_parser()
     args = parser.parse_args(argv)
 
@@ -266,6 +292,7 @@ def main(argv: list[str] | None = None) -> int:
                             "tasks": rows,
                             "total": len(rows),
                             "backend": getattr(client, "backend", None),
+                            "resolvedFilters": _task_filters_echo(args, filters),
                         },
                         kind="tasks",
                         list_key="tasks",
@@ -289,6 +316,9 @@ def main(argv: list[str] | None = None) -> int:
                 pri=pri,
             )
             if count_only:
+                if isinstance(payload, dict):
+                    payload = dict(payload)
+                    payload["resolvedFilters"] = _task_filters_echo(args, filters)
                 emit(
                     summary_svc.count_only_from_list(
                         payload,
