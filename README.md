@@ -7,16 +7,63 @@
 禅道（ZenTao）双通道命令行工具：支持 **Web（PATHINFO + Cookie）** 与 **REST Token（APIv1 默认 / APIv2 可选只读）**。
 
 - Python ≥ 3.10，无第三方依赖
-- **目标能力**：**全面命令行操作禅道**（权限内查任何人/任何对象 + CRUD/状态流转 + 备注）；契约见 [docs/cli-surface.md](./docs/cli-surface.md)
-- `my-*` 仅为当前用户快捷入口；查同事用范围列表 + `--assignedTo` 等过滤（目标面，逐步实现）
-- Web 承担备注与 REST 不便的「我的」列表；REST 适合结构化浏览/过滤与写接口
-- 与官方 [zentao-cli](https://github.com/easysoft/zentao-cli) 共用环境变量与 `~/.config/zentao/zentao.json`（本工具另存 `webCookies`）；**本工具自建完整能力面，含 CRUD**
-- Web PATHINFO 接口说明见 [docs/zentao-web-pathinfo.md](./docs/zentao-web-pathinfo.md)
-- REST API v1（22.3 源码整理）见 [docs/zentao-rest-apiv1.md](./docs/zentao-rest-apiv1.md)
-- REST API v2 路由全文见 [docs/zentao-rest-apiv2.md](./docs/zentao-rest-apiv2.md)（可用 `--api v2` 只读；写仍 v1）
-- **命令面契约（含分期）**见 [docs/cli-surface.md](./docs/cli-surface.md)
-- **交接 / 待办**见 [docs/handoff.md](./docs/handoff.md)
-- **REST vs Web 通道矩阵**见 [docs/channel-matrix.md](./docs/channel-matrix.md)
+- 命令入口 **`zqq-zentao`**（勿与官方 npm `zentao` 混淆）
+- 契约 / 交接 / 通道矩阵见下方 [文档](#文档)
+
+## 目标与定位
+
+**目标**：在账号权限内，用命令行全面操作禅道——查任何人/对象、`my-*` 快捷入口、CRUD/状态流转与备注（分期见契约）。
+
+| | 本工具 `zqq-zentao` | 官方 [zentao-cli](https://github.com/easysoft/zentao-cli) `zentao` |
+|--|---------------------|---------------|
+| 实现 | Python，无第三方依赖 | Node/npm |
+| 通道 | Web Cookie + REST Token | 主要为 REST |
+| 能力面 | 自建完整目标面（含 Web 补洞）；分期见契约 | 贴近官方 REST CRUD |
+| 配置 | 共用 `~/.config/zentao/zentao.json`，另存 `webCookies` | 同文件，忽略 `webCookies` |
+
+**为何双通道？** 不是官方 CLI「写坏了」，而是禅道 **REST 能力面本身有缺口**（尤其 APIv1）：例如无全局 my-bugs/my-stories、备注更适合 Web、部分过滤语义怪异（`status` 实为 browseType）、查他人 Bug 无任意账号过滤、users 等无稳定 search。官方 CLI 主要吃 REST，这些缺口会原样暴露。本工具策略是：**REST 能稳定表达则用 REST；不能则用 Web；必要时客户端过滤/搜索兜底**。场景对照见 [docs/channel-matrix.md](./docs/channel-matrix.md)。
+
+关于 REST 版本与「搜索」：
+
+- 默认 **REST v1**（写始终 v1）；`--api v2` 为**可选只读**（v2 常 redirect 到 Web 再抽 JSON，search 常依赖 Session，分页也有坑）
+- 「不能搜索」并不绝对：v1 按模块能力不一（如 tasks 有 `search=1`，users 无）；本工具对关键词多用客户端扫描或有限 REST 映射
+
+## 架构与通道选择
+
+```text
+zqq-zentao
+  → cli_app（参数 / 分发 / 表驱动写）
+  → capability + capabilities（本命令允许 web / rest）
+  → factory（建 RestClient 或 WebClient；auto 双能力时可失败降级）
+  → services → rest/* 或 web/*
+```
+
+| 层 | 职责 |
+|----|------|
+| `cli_app` | 命令面、写操作分发 |
+| `capabilities` | 能力 → 允许的后端 |
+| `factory` | 选通道建客户端；`auto` 时一侧失败可试另一侧 |
+| `rest/` | Token + `/api.php/v1`（读可选 v2） |
+| `web/` | Cookie + PATHINFO（`my-*`、备注等） |
+| `services/` | 过滤、确认、业务编排 |
+
+通道选择是**规则驱动**，不是每次请求现场「算最优」：
+
+1. 能力仅 web / 仅 rest → **强制**对应通道  
+2. `auto`（默认）且双通道 → **有 Token 偏 REST，否则偏 Web**  
+3. `--backend` / `ZENTAO_BACKEND` 可显式覆盖  
+4. `auto` + 双能力时，首选失败（登录/超时等）可降级到另一侧（stderr 有 warn）
+
+## 文档
+
+| 文档 | 说明 |
+|------|------|
+| [docs/cli-surface.md](./docs/cli-surface.md) | 命令面契约（`my-*` / 过滤 / CRUD 分期 / ✅⏳） |
+| [docs/handoff.md](./docs/handoff.md) | 交接：未完成待办、已知坑、建议下一刀 |
+| [docs/channel-matrix.md](./docs/channel-matrix.md) | REST vs Web 场景矩阵与挖缺口方法 |
+| [docs/zentao-web-pathinfo.md](./docs/zentao-web-pathinfo.md) | Web PATHINFO（我的地盘 / 备注等） |
+| [docs/zentao-rest-apiv1.md](./docs/zentao-rest-apiv1.md) | REST API v1（22.3 源码整理；默认读/写） |
+| [docs/zentao-rest-apiv2.md](./docs/zentao-rest-apiv2.md) | REST API v2 路由全文（`--api v2` 可选只读；写仍 v1） |
 
 ## 安装
 
@@ -169,7 +216,7 @@ zqq-zentao comment edit 1063694 "新备注"
 | `login` | 登录并缓存 Cookie / Token | web + rest（`auto`） |
 | `whoami` | 当前账号与服务器 | web / rest |
 | `my-tasks` | 我的任务；`--type` / `--scope`（默认指派给我） | web / rest（仅默认） |
-| `my-bugs` / `my-stories` / `my-todos` / `my-testcases` / `my-testtasks` / `my-feedbacks` / `my-tickets` | 我的地盘列表（Web；可 `--type`） | **仅 web** |
+| `my-bugs` / `my-stories` / `my-requirements` / `my-epics` / `my-todos` / `my-testcases` / `my-testtasks` / `my-feedbacks` / `my-tickets` / `my-docs` / `my-projects` / `my-executions` | 我的地盘列表（Web；可 `--type`） | **仅 web** |
 | `tasks` | REST 任务列表；可 `--assignedTo`（查别人） | **仅 rest** |
 | `tasks -e <id>` | 某执行下的任务；可 `--assignedTo` / `--openedBy` | web / rest |
 | `task <id>` / `task <action> <id>` | 任务详情；写/动作（create/update/delete/start/finish/close/activate/assign，REST） | 详情 web/rest；写 **rest** |
@@ -188,30 +235,39 @@ zqq-zentao comment edit 1063694 "新备注"
 | `ping` / `groups` / `configurations` 等 | 系统只读 | **仅 rest** |
 | `comment list/add/edit` | 备注增改查 | **仅 web** |
 
-REST 只读模块由 [`src/rest/resources.py`](./src/rest/resources.py) 注册表驱动；完整路径对照见 [docs/zentao-rest-apiv1.md](./docs/zentao-rest-apiv1.md)。目标命令面（含 `my-* --type`、CRUD 分期）见 [docs/cli-surface.md](./docs/cli-surface.md)。`zqq-zentao -h` 可查看当前已实现子命令。
+REST 只读模块由 [`src/rest/resources.py`](./src/rest/resources.py) 注册表驱动。目标命令面与接口对照见上方 [文档](#文档)。`zqq-zentao -h` 可查看当前已实现子命令。
 
 `--backend` 可覆盖 `ZENTAO_BACKEND`。`auto`：有 Token（环境变量或配置文件）偏向 rest，否则 web；仅 rest / 仅 web 的命令会强制对应通道。`login` 在 `auto` 下会同时完成 Web 与 REST 换票。
 
 ## 目录结构
 
 ```
-src/                 # 安装后映射为包 zqq_zentao_cli，入口命令：zqq-zentao
-  cli.py
-  config.py
-  factory.py
-  capabilities.py
-  protocol.py
-  web/               # Cookie + PATHINFO
-  rest/              # Token + /api.php/v1（含 resources.py 只读注册表）
-  services/
-docs/
-  zentao-web-pathinfo.md  # Web PATHINFO 接口说明
-  zentao-rest-apiv1.md # REST API v1（22.3 源码整理）
-  zentao-rest-apiv2.md # REST API v2 路由全文（未接入）
-  cli-surface.md      # 命令面契约（my-* / CRUD 分期）
-  handoff.md          # 交接：待办与现状
-  channel-matrix.md   # REST vs Web：场景矩阵与挖缺口方法
-LICENSE              # MIT
+.
+├── pyproject.toml          # 包元数据；入口 zqq-zentao → zqq_zentao_cli.cli:main
+├── README.md / README.en.md
+├── LICENSE
+├── docs/                   # 契约 / 交接 / 通道矩阵 / 接口对照（见「文档」）
+├── tests/                  # 离线 pytest（不打真实禅道写）
+└── src/                    # 安装后包名 zqq_zentao_cli
+    ├── cli.py              # 控制台入口（转发 cli_app）
+    ├── config.py           # 配置 / 环境变量 / profile
+    ├── capabilities.py     # 能力 → 允许的 web|rest
+    ├── factory.py          # 建客户端；auto 双通道降级
+    ├── protocol.py         # ZenTaoClient 协议
+    ├── user_resolve.py     # 实名→账号；用户表短缓存
+    ├── list_filter.py      # 客户端过滤 / --search 文本匹配
+    ├── *_shape.py          # 列表行摘要（task/bug/my…）
+    ├── confirm_util.py / payload.py / output.py
+    ├── cli_app/            # 参数、分发、表驱动写
+    │   ├── parser.py / dispatch.py / capability.py
+    │   └── write_dispatch.py / fields.py / body.py
+    ├── rest/               # Token + /api.php/v1（读可选 v2）
+    │   ├── client.py / session.py / resources.py / resources_v2.py
+    │   ├── tasks.py / browse_filter.py / writes.py / v2_search.py
+    ├── web/                # Cookie + PATHINFO
+    │   ├── client.py / session.py / my_pages.py / lists.py
+    │   └── comments.py / tasks.py / bugs.py / parse.py
+    └── services/           # 业务编排（auth / my_pages / resources / bugs|tasks|stories / comments）
 ```
 
 ## 许可证

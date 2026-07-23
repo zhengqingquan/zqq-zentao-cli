@@ -7,16 +7,63 @@
 ZenTao dual-backend CLI: **Web (PATHINFO + Cookie)** and **REST Token (APIv1 default / APIv2 optional read)**.
 
 - Python ≥ 3.10, no third-party dependencies
-- **Target surface**: **full ZenTao CLI** (query anyone/anything within ACL + CRUD/status actions + comments); see [docs/cli-surface.md](./docs/cli-surface.md)
-- `my-*` is only a shortcut for the logged-in user; use scoped lists + `--assignedTo` (etc.) for others (target API, rolling out)
-- Web handles comments and “My” pages where REST is awkward; REST fits structured browse/filter and writes
-- Shares env vars and `~/.config/zentao/zentao.json` with the official [zentao-cli](https://github.com/easysoft/zentao-cli) (this tool also stores `webCookies`); **this tool owns a full capability surface including CRUD**
-- Web PATHINFO API notes: [docs/zentao-web-pathinfo.md](./docs/zentao-web-pathinfo.md)
-- REST API v1 (from 22.3 source): [docs/zentao-rest-apiv1.md](./docs/zentao-rest-apiv1.md)
-- REST API v2 full route list: [docs/zentao-rest-apiv2.md](./docs/zentao-rest-apiv2.md) (optional `--api v2` reads; writes stay on v1)
-- **CLI contract (phased)**: [docs/cli-surface.md](./docs/cli-surface.md)
-- **Handoff / TODO**: [docs/handoff.md](./docs/handoff.md)
-- **REST vs Web channel matrix**: [docs/channel-matrix.md](./docs/channel-matrix.md)
+- Console command **`zqq-zentao`** (do not confuse with the official npm `zentao`)
+- Contract / handoff / channel matrix: see [Documentation](#documentation)
+
+## Goals & positioning
+
+**Goal**: full ZenTao CLI within ACL — query anyone/anything, `my-*` shortcuts, CRUD/status actions, and comments (phased; see the contract).
+
+| | This tool `zqq-zentao` | Official [zentao-cli](https://github.com/easysoft/zentao-cli) `zentao` |
+|--|------------------------|---------------|
+| Stack | Python, no third-party deps | Node/npm |
+| Transport | Web Cookie + REST Token | Mostly REST |
+| Surface | Owns a full target surface (incl. Web gap-fills); phased in the contract | Aligns with official REST CRUD |
+| Config | Shared `~/.config/zentao/zentao.json`, plus `webCookies` | Same file; ignores `webCookies` |
+
+**Why dual backends?** Not because the official CLI is “broken”, but because ZenTao’s **REST surface has gaps** (especially APIv1): no global my-bugs/my-stories, comments fit Web better, some filters have odd semantics (`status` is really browseType), no arbitrary-account Bug filter, no stable search on users, etc. The official CLI mainly consumes REST, so those gaps show up as-is. This tool’s rule: **use REST when it stably expresses the intent; otherwise Web; fall back to client-side filter/search when needed**. Scenario matrix: [docs/channel-matrix.md](./docs/channel-matrix.md).
+
+On REST versions and “search”:
+
+- Default **REST v1** (writes always v1); `--api v2` is **optional read-only** (v2 often redirects to Web then extracts JSON; search often needs Session; pagination can be unreliable)
+- “Cannot search” is not absolute: v1 varies by module (e.g. tasks have `search=1`, users do not); this tool often uses client-side scans or limited REST mapping for keywords
+
+## Architecture & backends
+
+```text
+zqq-zentao
+  → cli_app (args / dispatch / table-driven writes)
+  → capability + capabilities (which backends this command allows)
+  → factory (RestClient or WebClient; auto may fall back on dual capabilities)
+  → services → rest/* or web/*
+```
+
+| Layer | Role |
+|-------|------|
+| `cli_app` | Command surface, write dispatch |
+| `capabilities` | Capability → allowed backends |
+| `factory` | Pick backend and build client; on `auto`, retry peer on failure |
+| `rest/` | Token + `/api.php/v1` (optional v2 reads) |
+| `web/` | Cookie + PATHINFO (`my-*`, comments, …) |
+| `services/` | Filters, confirm, orchestration |
+
+Backend choice is **rule-driven**, not a per-request “best path” optimizer:
+
+1. Web-only / rest-only capability → **force** that backend  
+2. `auto` (default) and dual → **prefer REST when a Token exists, else Web**  
+3. `--backend` / `ZENTAO_BACKEND` overrides explicitly  
+4. On `auto` + dual, a failed primary (auth/timeout/…) may fall back to the other side (stderr `warn`)
+
+## Documentation
+
+| Doc | Description |
+|-----|-------------|
+| [docs/cli-surface.md](./docs/cli-surface.md) | CLI contract (`my-*` / filters / phased CRUD / ✅⏳) |
+| [docs/handoff.md](./docs/handoff.md) | Handoff: backlog, known pitfalls, suggested next cuts |
+| [docs/channel-matrix.md](./docs/channel-matrix.md) | REST vs Web scenario matrix and how to find gaps |
+| [docs/zentao-web-pathinfo.md](./docs/zentao-web-pathinfo.md) | Web PATHINFO (My workbench / comments, etc.) |
+| [docs/zentao-rest-apiv1.md](./docs/zentao-rest-apiv1.md) | REST API v1 (from 22.3 source; default read/write) |
+| [docs/zentao-rest-apiv2.md](./docs/zentao-rest-apiv2.md) | REST API v2 full routes (optional `--api v2` reads; writes stay on v1) |
 
 ## Install
 
@@ -169,7 +216,7 @@ zqq-zentao comment edit 1063694 "updated comment"
 | `login` | Login and cache Cookie / Token | web + rest (`auto`) |
 | `whoami` | Current account and server | web / rest |
 | `my-tasks` | My tasks; `--type` / `--scope` (default assigned to me) | web / rest (default only) |
-| `my-bugs` / `my-stories` / `my-todos` / `my-testcases` / `my-testtasks` / `my-feedbacks` / `my-tickets` | My workbench lists (Web; optional `--type`) | **web only** |
+| `my-bugs` / `my-stories` / `my-requirements` / `my-epics` / `my-todos` / `my-testcases` / `my-testtasks` / `my-feedbacks` / `my-tickets` / `my-docs` / `my-projects` / `my-executions` | My workbench lists (Web; optional `--type`) | **web only** |
 | `tasks` | REST task list; optional `--assignedTo` (others) | **rest only** |
 | `tasks -e <id>` | Tasks under an execution; `--assignedTo` / `--openedBy` | web / rest |
 | `task <id>` / `task <action> <id>` | Task detail; writes/actions (REST) | detail web/rest; write **rest** |
@@ -188,30 +235,39 @@ zqq-zentao comment edit 1063694 "updated comment"
 | `ping` / `groups` / `configurations` / … | System read-only | **rest only** |
 | `comment list/add/edit` | Comment CRUD | **web only** |
 
-REST read-only modules are driven by [`src/rest/resources.py`](./src/rest/resources.py). Path map: [docs/zentao-rest-apiv1.md](./docs/zentao-rest-apiv1.md). Target CLI surface (including `my-* --type` and phased CRUD): [docs/cli-surface.md](./docs/cli-surface.md). Run `zqq-zentao -h` for currently implemented commands.
+REST read-only modules are driven by [`src/rest/resources.py`](./src/rest/resources.py). Target CLI surface and API notes: see [Documentation](#documentation). Run `zqq-zentao -h` for currently implemented commands.
 
 `--backend` overrides `ZENTAO_BACKEND`. For `auto`: prefer rest when a token exists (env or config file), otherwise web; rest-only / web-only commands force that backend. `login` with `auto` performs both Web and REST credential exchange.
 
 ## Layout
 
 ```
-src/                 # installed as package zqq_zentao_cli; console: zqq-zentao
-  cli.py
-  config.py
-  factory.py
-  capabilities.py
-  protocol.py
-  web/               # Cookie + PATHINFO
-  rest/              # Token + /api.php/v1 (incl. resources.py read-only registry)
-  services/
-docs/
-  zentao-web-pathinfo.md  # Web PATHINFO notes
-  zentao-rest-apiv1.md # REST API v1 (from 22.3 source)
-  zentao-rest-apiv2.md # REST API v2 full routes (not wired)
-  cli-surface.md      # CLI contract (my-* / phased CRUD)
-  handoff.md          # Handoff: status and TODO
-  channel-matrix.md   # REST vs Web: scenario matrix and how to find gaps
-LICENSE              # MIT
+.
+├── pyproject.toml          # package metadata; entry zqq-zentao → zqq_zentao_cli.cli:main
+├── README.md / README.en.md
+├── LICENSE
+├── docs/                   # contract / handoff / channel matrix / API notes (see Documentation)
+├── tests/                  # offline pytest (no destructive live writes)
+└── src/                    # installed package name: zqq_zentao_cli
+    ├── cli.py              # console entry (forwards to cli_app)
+    ├── config.py           # config / env / profile
+    ├── capabilities.py     # capability → allowed web|rest
+    ├── factory.py          # build client; auto dual-backend fallback
+    ├── protocol.py         # ZenTaoClient protocol
+    ├── user_resolve.py     # realname→account; short user-table cache
+    ├── list_filter.py      # client-side filters / --search text match
+    ├── *_shape.py          # list-row summarizers (task/bug/my…)
+    ├── confirm_util.py / payload.py / output.py
+    ├── cli_app/            # argparse, dispatch, table-driven writes
+    │   ├── parser.py / dispatch.py / capability.py
+    │   └── write_dispatch.py / fields.py / body.py
+    ├── rest/               # Token + /api.php/v1 (optional v2 reads)
+    │   ├── client.py / session.py / resources.py / resources_v2.py
+    │   ├── tasks.py / browse_filter.py / writes.py / v2_search.py
+    ├── web/                # Cookie + PATHINFO
+    │   ├── client.py / session.py / my_pages.py / lists.py
+    │   └── comments.py / tasks.py / bugs.py / parse.py
+    └── services/           # orchestration (auth / my_pages / resources / bugs|tasks|stories / comments)
 ```
 
 ## License
